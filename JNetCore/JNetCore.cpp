@@ -110,7 +110,7 @@ void jnet::JNetCore::PrintLibraryInfoOnConsole()
 {
 	cout << "======================== JNetCore ========================" << endl;
 	cout << "JNetCore::Maximum Of Sessions               : " << m_MaximumOfSessions << endl;
-	cout << "JNetCore::Current Allive Sessions Count     : " << m_MaximumOfSessions - m_SessionIndexQueue.GetSize() << endl;
+	cout << "JNetCore::Current Allive Sessions Count     : " << GetCurrentSessions() << endl;
 	cout << "JNetCore::TLS Memory Pool Unit Count(set)   : " << m_TlsMemPoolUnitCnt << endl;
 	cout << "JNetCore::TLS Memory Pool Unit Capacity(set): " << m_TlsMemPoolUnitCapacity << endl;
 	cout << "JNetCore::TLS Memory Pool Buffer Alloc Size : " << m_MemPoolBuffAllocSize << endl;

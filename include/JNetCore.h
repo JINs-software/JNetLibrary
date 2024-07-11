@@ -63,6 +63,9 @@ namespace jnet {
 		
 		bool Start();
 		void Stop();
+		inline uint16 GetCurrentSessions() {
+			return m_MaximumOfSessions - m_SessionIndexQueue.GetSize();
+		}
 
 	protected:
 		void PrintLibraryInfoOnConsole();
