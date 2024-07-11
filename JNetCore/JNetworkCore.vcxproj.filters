@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="..\include\CommStructs.h" />
+    <ClInclude Include="..\include\CommTypes.h" />
+    <ClInclude Include="..\include\JNetCore.h" />
+    <ClInclude Include="..\include\JNetDB.h" />
+    <ClInclude Include="..\include\WinSocketAPI.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="JNetSession.cpp" />
+    <ClCompile Include="WinSocketAPI.cpp" />
+    <ClCompile Include="JNetCore.cpp" />
+    <ClCompile Include="JNetServer.cpp" />
+    <ClCompile Include="JNetDB.cpp" />
+    <ClCompile Include="JNetEncryption.cpp" />
+    <ClCompile Include="JNetGroup.cpp" />
+    <ClCompile Include="JNetClient.cpp" />
+  </ItemGroup>
+</Project>
