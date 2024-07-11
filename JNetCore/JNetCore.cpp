@@ -114,6 +114,11 @@ void jnet::JNetCore::PrintLibraryInfoOnConsole()
 	cout << "JNetCore::TLS Memory Pool Unit Count(set)   : " << m_TlsMemPoolUnitCnt << endl;
 	cout << "JNetCore::TLS Memory Pool Unit Capacity(set): " << m_TlsMemPoolUnitCapacity << endl;
 	cout << "JNetCore::TLS Memory Pool Buffer Alloc Size : " << m_MemPoolBuffAllocSize << endl;
+
+	cout << "TlsMemPool::Total Memory Alloc Count        : " << m_TlsMemPoolMgr.GetTotalAllocMemCnt() << endl;
+	cout << "TlsMemPool::Total Memory Free Count         : " << m_TlsMemPoolMgr.GetTotalFreeMemCnt() << endl;
+	cout << "TlsMemPool::Current Memory Allocated Count  : " << m_TlsMemPoolMgr.GetAllocatedMemUnitCnt() << endl;
+	cout << "TlsMemPool::Memory Malloc Count             : " << m_TlsMemPoolMgr.GetMallocCount() << endl;
 }
 
 void jnet::JNetCore::Disconnect(SessionID64 sessionID64)

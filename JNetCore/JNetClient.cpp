@@ -9,9 +9,13 @@ bool JNetClient::Start(bool connectToServer)
 	}
 
 	if (connectToServer) {
-		ConnectToServer();
+		if (!ConnectToServer()) {
+			return false;
+		}
 		cout << "JNetClient::Start(..), ConnectToServer Done.." << endl;
 	}
+
+	return true;
 }
 
 void JNetClient::Stop()
@@ -46,6 +50,8 @@ bool jnet::JNetClient::ConnectToServer()
 		closesocket(m_ConnectSock);
 		return false;
 	}
+
+	OnConnectionToServer();
 
 	return true;
 }

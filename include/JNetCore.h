@@ -95,6 +95,12 @@ namespace jnet {
 		inline void AddRefSerialBuff(JBuffer* buff) {
 			m_TlsMemPoolMgr.GetTlsMemPool().IncrementRefCnt(buff, 1);
 		}
+	public:
+		inline int64 GetCurrentAllocatedMemUnitCnt() {
+			return m_TlsMemPoolMgr.GetAllocatedMemUnitCnt();;
+		}
+
+		
 
 	protected:
 		/////////////////////////////////////////////////////////////////
