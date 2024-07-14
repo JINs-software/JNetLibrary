@@ -44,7 +44,7 @@ bool jnet::Decode(BYTE symmetricKey, BYTE randKey, USHORT payloadLen, BYTE check
 	}
 
 	if (payloadSum != payloadSumCmp) {
-#if defined(CLANSERVER_ASSERT)
+#if defined(ASSERT)
 		DebugBreak();
 #endif
 		return false;

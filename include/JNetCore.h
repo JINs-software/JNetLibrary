@@ -21,6 +21,8 @@ namespace jnet {
 
 #define CALCULATE_TRANSACTION_PER_SECOND
 
+#define ASSERT
+
 	using namespace std;
 	using SessionID64 = uint64;
 	

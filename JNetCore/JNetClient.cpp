@@ -39,6 +39,9 @@ bool jnet::JNetClient::ConnectToServer()
 
 	if (serverSession != nullptr) {
 		if (!RegistSessionToIOCP(serverSession)) {
+#if defined(ASSERT)
+			DebugBreak();
+#endif
 			DeleteSession(serverSession->m_ID);
 			OnSessionLeave(serverSession->m_ID);
 			m_ServerSessionID64 = 0;

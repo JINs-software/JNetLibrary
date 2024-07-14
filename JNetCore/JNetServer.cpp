@@ -270,6 +270,9 @@ UINT __stdcall JNetServer::AcceptThreadFunc(void* arg) {
 					// 技记 积己 捞亥飘
 					server->OnClientJoin(newSession->m_ID, clientAddr);
 					if (!server->RegistSessionToIOCP(newSession)) {
+#if defined(ASSERT)
+						DebugBreak();
+#endif
 						server->DeleteSession(newSession->m_ID);
 						server->OnSessionLeave(newSession->m_ID);
 					}

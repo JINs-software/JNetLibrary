@@ -158,6 +158,10 @@ UINT __stdcall JNetGroupThread::SessionGroupThreadFunc(void* arg) {
 				break;
 				}
 			}
+			else {
+				// 싱글 스레드에서 groupthread->m_LockFreeMessageQueue.GetSize() > 0 조건을 확인하였음에도 락-프리 큐 디큐잉에 실패한 경우
+				DebugBreak();
+			}
 		}
 	}
 

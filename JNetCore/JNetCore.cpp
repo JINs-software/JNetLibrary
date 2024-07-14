@@ -33,7 +33,7 @@ JNetCore::JNetCore(
 
 	// 3. IOCP 객체 초기화
 	m_IOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, numOfIocpConcurrentThrd);
-#if defined(CLANSERVER_ASSERT)
+#if defined(ASSERT)
 	if (m_IOCP == NULL) {
 		DebugBreak();
 	}
@@ -224,12 +224,6 @@ JNetCore::JNetSession* JNetCore::AcquireSession(SessionID64 sessionID)
 	else {
 		// 세션 참조 카운트(ioCnt) 증가!
 		long ref32 = InterlockedIncrement(reinterpret_cast<long*>(&session->m_SessionRef));
-#if defined(ASSERT)
-		JNetSession::SessionRef ref(ref32);
-		if (orgRef.refCnt < 1) {
-			DebugBreak();
-		}
-#endif
 
 		// 세션 IOCnt를 증가한 시점 이후,
 		// 참조하고자 하였던 본래 세션이든, 또는 같은 인덱스 자리에 재활용된 세션이든 삭제되지 않는 보장을 할 수 있음
@@ -290,12 +284,6 @@ void JNetCore::ReturnSession(JNetSession* session)
 	uint64 savedSessionID = session->m_ID;		// ioCnt와 r
 
 	int32 ref32 = InterlockedDecrement(reinterpret_cast<long*>(&session->m_SessionRef));
-#if defined(ASSERT)
-	JNetSession::SessionRef ref(ref32);
-	if (orgRef.refCnt < 0) {
-		DebugBreak();
-	}
-#endif
 
 	JNetSession::SessionRef exgRef(1, 0);
 	int32 orgRef32 = InterlockedCompareExchange(reinterpret_cast<long*>(&session->m_SessionRef), exgRef, 0);
@@ -307,7 +295,7 @@ void JNetCore::ReturnSession(JNetSession* session)
 		// 새로운 세션 생성 전
 		// nothing to do..
 	}
-#if defined(CLANSERVER_ASSERT)
+#if defined(ASSERT)
 	else if (orgRef.refCnt < 0) {
 		DebugBreak();
 	}
@@ -337,7 +325,9 @@ void JNetCore::SendPost(SessionID64 sessionID, bool onSendFlag)
 				JBuffer* msgPtr;
 				//session->sendBufferQueue.Dequeue(msgPtr);
 				// => single reader 보장
-				session->m_SendBufferQueue.Dequeue(msgPtr, true);
+				if (!session->m_SendBufferQueue.Dequeue(msgPtr, true)) {
+					DebugBreak();
+				}
 
 				//session->sendPostedQueue.push(msgPtr);
 				// => push 오버헤드 제거
@@ -480,7 +470,9 @@ void JNetCore::FreeBufferedSendPacket(LockFreeQueue<JBuffer*>& sendBufferQueue, 
 {
 	while (sendBufferQueue.GetSize() > 0) {
 		JBuffer* sendPacket;
-		sendBufferQueue.Dequeue(sendPacket);
+		if (!sendBufferQueue.Dequeue(sendPacket)) {
+			DebugBreak();
+		}
 		FreeSerialBuff(sendPacket);
 	}
 	while (!sendPostedQueue.empty()) {
@@ -603,7 +595,7 @@ void jnet::JNetCore::Proc_RecvCompletion(JNetSession* session, DWORD transferred
 	DWORD dwflag = 0;
 
 	if (wsabuf.len == 0) {
-#if defined(CLANSERVER_ASSERT)
+#if defined(ASSERT)
 		// 0 바이트 수신 요청이 발생하는지 확인
 		DebugBreak();
 #else
@@ -617,7 +609,15 @@ void jnet::JNetCore::Proc_RecvCompletion(JNetSession* session, DWORD transferred
 	if (WSARecv(session->m_Sock, &wsabuf, 1, NULL, &dwflag, &session->m_RecvOverlapped, NULL) == SOCKET_ERROR) {
 		int errcode = WSAGetLastError();
 		if (errcode != WSA_IO_PENDING) {
-			Disconnect(session->m_ID);
+			int32 ref32 = InterlockedDecrement((uint32*)&session->m_SessionRef);
+			JNetSession::SessionRef ref(ref32);
+			if (ref.refCnt == 0) {
+				// 세션 제거...
+				SessionID64 sessionID = session->m_ID;
+				if (DeleteSession(sessionID)) {
+					OnSessionLeave(sessionID);
+				}
+			}
 		}
 	}
 }
