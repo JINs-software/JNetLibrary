@@ -1,0 +1,184 @@
+{
+  "dataTypeMapping": {
+    "type": "dataTypeMapping",
+    "mapping": [
+      {
+        "dataType": "WORD",
+        "C#": "ushort"
+      },
+      {
+        "dataType": "int",
+        "C++": "INT"
+      }
+    ]
+  },
+
+  "msg_format": {
+    "type": "messageFormat",
+    "field": [
+      {
+        "type": "WORD",
+        "name": "type"
+      }
+    ]
+  },
+
+
+  "��Ŷ Ÿ��": {
+    "type": "enum",
+    "name": "enPacketType",
+    "field": [
+      "COM_REQUSET",
+      "COM_REPLY",
+
+      "REQ_SET_PLAYER_NAME",
+
+      "REQ_MAKE_MATCH_ROOM",
+      "FWD_REGIST_MATCH_ROOM",
+      "RES_QUERY_PLAYER_LIST",
+
+      "RES_QUERY_MATCH_ROOM_LIST"
+    ]
+  },
+
+  "�������� ���� ��û": {
+    "type": "enum",
+    "name": "enProtocolComRequest",
+    "field": [
+      "REQ_PLAYER_LIST",
+      "REQ_MATCH_ROOM_LIST"
+    ]
+  },
+
+  "�������� ���� ����": {
+    "type": "enum",
+    "name": "enProtocolComReply",
+    "field": [
+      "REPLY_OK"
+    ]
+  },
+
+  "�������� ���� ���": {
+    "type": "constant",
+    "group": "PROTOCOL_CONSTANT",
+    "constant": [
+      {
+        "name": "MAX_OF_PLAYER_NAME_LEN",
+        "value": 32
+      },
+      {
+        "name": "MAX_OF_ROOM_NAME_LEN",
+        "value": 50
+      }
+    ]
+  },
+
+  "C->S, ���� ��û": {
+    "type": "message",
+    "name": "MSG_COM_REQUEST",
+    "field": [
+      {
+        "type": "uint16",
+        "name": "requestCode"
+      }
+    ]
+  },
+  "S->C, ���� ����": {
+    "type": "message",
+    "name": "MSG_COM_REPLY",
+    "field": [
+      {
+        "type": "uint16",
+        "name": "replyCode"
+      }
+    ]
+  },
+
+  "C->S, �÷��̾� �̸� ���� ��û": {
+    "type": "message",
+    "name": "MSG_REQ_SET_PLAYER_NAME",
+    "field": [
+      {
+        "type": "char",
+        "array": [
+          "PROTOCOL_CONSTANT",
+          "MAX_OF_PLAYER_NAME_LEN"
+        ],   
+        "name": "playerName"
+      },
+      {
+        "type": "int",
+        "name": "playerNameLen"
+      }
+    ]
+  },
+
+  "C->S, ��ġ�� ���� ��û": {
+    "type": "message",
+    "name": "MSG_REQ_MAKE_ROOM",
+    "field": [
+      {
+        "type": "char",
+        "array": [
+          "PROTOCOL_CONSTANT",
+          "MAX_OF_ROOM_NAME_LEN"
+        ],
+        "name": "roomName"
+      },
+      {
+        "type": "int",
+        "name": "roomNameLen"
+      }
+    ]
+  },
+
+  "G->G, ��ġ�뿡 �÷��̾� ��� ��û(�κ� ������ �׷�->��ġ�� ������ �׷�)": {
+    "type": "message",
+    "name": "MSG_REGIST_ROOM",
+    "field": [
+      {
+        "type": "char",
+        "array": [
+          "PROTOCOL_CONSTANT",
+          "MAX_OF_PLAYER_NAME_LEN"
+        ],
+        "name": "playerName"
+      },
+      {
+        "type": "int",
+        "name": "playerNameLen"
+      },
+      {
+        "type": "BYTE",
+        "name": "playerType"
+      }
+    ]
+  },
+
+  "C->S, ��ġ �÷��̾� ����Ʈ ����": {
+    "type": "message",
+    "name": "MSG_RES_QUERY_PLAYER_LIST",
+    "field": [
+      {
+        "type": "char",
+        "array": [
+          "PROTOCOL_CONSTANT",
+          "MAX_OF_PLAYER_NAME_LEN"
+        ],
+        "name": "playerName"
+      },
+      {
+        "type": "int",
+        "name": "playerNameLen"
+      },
+      {
+        "type": "BYTE",
+        "name": "playerType"
+      },
+      {
+        "type": "int8",
+        "name": "order"
+      }
+    ]
+  }
+}
