@@ -346,6 +346,20 @@ private:
 		bool SendPacketBlocking(SessionID64 sessionID, JBuffer* sendPktPtr, bool encoded = false);
 		bool BufferSendPacket(SessionID64 sessionID, JBuffer* sendPktPtr, bool encoded = false);
 
+		inline JBuffer* AllocSerialSendBuff(uint16 len, bool LAN = false) {
+			JBuffer* msg = AllocSerialBuff();
+			stMSG_HDR* hdr = msg->DirectReserve<stMSG_HDR>();
+			if (!LAN) {
+				hdr->code = m_PacketCode;
+			}
+			else {
+				hdr->code = m_PacketCode_LAN;
+			}
+			hdr->len = len;
+			hdr->randKey = -1;
+
+			return msg;
+		}
 	protected:
 		virtual bool OnConnectionRequest(const SOCKADDR_IN& clientSockAddr) {
 			if (m_NumOfConnections > m_MaximumOfConnections) {
@@ -502,6 +516,7 @@ private:
 			void EnterSessionGroup(SessionID64 sessionID, GroupID enterGroup);
 			void LeaveSessionGroup(SessionID64 sessionID);
 			void ForwardSessionGroup(SessionID64 sessionID, GroupID from, GroupID to);
+			void SendMessageGroupToGroup(SessionID64 sessionID, JBuffer* groupMsg);
 
 		private:
 			virtual void OnRecv(SessionID64 sessionID, JSerialBuffer& recvSerialBuff) override;
@@ -530,7 +545,7 @@ private:
 			enum GroupTheradMessageType {
 				enCilentEnter,
 				enClientLeave,
-				enClientMessage
+				enMessage,
 			};
 			LockFreeQueue<GroupTheradMessage>					m_LockFreeMessageQueue;
 
@@ -565,7 +580,7 @@ private:
 				m_LockFreeMessageQueue.Enqueue({ sessionID, enClientLeave, NULL });
 			}
 			inline void PushRecvBuff(SessionID64 sessionID, JBuffer* recvData) {
-				m_LockFreeMessageQueue.Enqueue({ sessionID, enClientMessage, recvData });
+				m_LockFreeMessageQueue.Enqueue({ sessionID, enMessage, recvData });
 			}
 
 		protected:
@@ -584,15 +599,32 @@ private:
 			inline bool SendBufferedPacket(SessionID64 sessionID, bool postToWorker = false) {
 				return m_Server->SendBufferedPacket(sessionID, postToWorker);
 			}
+
+			inline void CreateGroup(GroupID newGroupID, JNetGroupThread* groupThread, bool threadPriorBoost = false) {
+				m_Server->CreateGroup(newGroupID, groupThread, threadPriorBoost);
+			}
+			inline void DeleteGroup(GroupID delGroupID) {
+				m_Server->DeleteGroup(delGroupID);
+			}
+			//inline void EnterSessionGroup(SessionID64 sessionID, GroupID enterGroup) {
+			//	m_Server->EnterSessionGroup(sessionID, enterGroup);
+			//}
 			inline void ForwardSessionToGroup(SessionID64 sessionID, GroupID destGroup) {
 				m_Server->ForwardSessionGroup(sessionID, m_GroupID, destGroup);
 			}
+			inline void SendMessageGroupToGroup(SessionID64 sessionID, JBuffer* msg) {
+				m_Server->SendMessageGroupToGroup(sessionID, msg);
+			}
+
 			inline DWORD AllocTlsMemPool() {
 				return m_Server->AllocTlsMemPool();
 			}
 			// TLS 메모리 풀 직렬화 버퍼 할당 및 반환 그리고 참조 카운트 증가 함수
 			inline JBuffer* AllocSerialBuff() {
 				return m_Server->AllocSerialBuff();
+			}
+			inline JBuffer* AllocSerialSendBuff(uint16 len, bool LAN = false) {
+				return m_Server->AllocSerialSendBuff(len, LAN);
 			}
 			inline void FreeSerialBuff(JBuffer* buff) {
 				m_Server->FreeSerialBuff(buff);

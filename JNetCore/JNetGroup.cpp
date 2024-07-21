@@ -58,6 +58,20 @@ void JNetGroupServer::ForwardSessionGroup(SessionID64 sessionID, GroupID from, G
 	m_GroupThreads[to]->EnterClient(sessionID);
 }
 
+void jnet::jgroup::JNetGroupServer::SendMessageGroupToGroup(SessionID64 sessionID, JBuffer* msg)
+{
+	AcquireSRWLockShared(&m_SessionGroupMapSrwLock);
+	auto iter = m_SessionGroupMap.find(sessionID);
+	if (iter == m_SessionGroupMap.end()) {
+		DebugBreak();
+	}
+	GroupID groupID = iter->second;
+	ReleaseSRWLockShared(&m_SessionGroupMapSrwLock);
+
+	m_GroupThreads[groupID]->PushRecvBuff(sessionID, msg);
+}
+
+
 void JNetGroupServer::OnRecv(SessionID64 sessionID, JSerialBuffer& recvSerialBuff)
 {
 	AcquireSRWLockShared(&m_SessionGroupMapSrwLock);
@@ -144,7 +158,7 @@ UINT __stdcall JNetGroupThread::SessionGroupThreadFunc(void* arg) {
 					groupthread->OnLeaveClient(message.sessionID);
 				}
 				break;
-				case enClientMessage:
+				case enMessage:
 				{
 					JBuffer* recvData = message.msgPtr;
 					groupthread->OnMessage(message.sessionID, *recvData);
