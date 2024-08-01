@@ -66,6 +66,7 @@ public:
 			return false;
 		}
 
+		outputFile << "using System;" << endl;
 		outputFile << "using System.Runtime.InteropServices;" << endl << endl;
 
 		// 상수 입력
@@ -140,6 +141,9 @@ private:
 		//list<Enum> m_EnumList;
 
 		for (auto Enum : m_EnumList) {
+			if (langType == "C#") {
+				outputFile << "public " << endl;
+			}
 			outputFile << "enum " << Enum.name << endl;
 			outputFile << "{" << endl;
 			for (auto enumItem : Enum.fields) {

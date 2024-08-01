@@ -584,6 +584,8 @@ private:
 			}
 
 		protected:
+			GroupID GetGroupID() { return m_GroupID; }
+
 			inline void Disconnect(SessionID64 sessionID) {
 				m_Server->Disconnect(sessionID);
 			}
