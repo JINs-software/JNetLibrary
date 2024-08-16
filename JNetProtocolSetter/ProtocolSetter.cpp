@@ -88,6 +88,39 @@ void ProtocolSetter::ParseJsonFile()
 						DebugBreak();
 					}
 				}
+				else if (type == "include") {
+					if (object.HasMember("references")) {
+						const auto& references = object["references"];
+						auto refArr = references.GetArray();
+						for (auto iter = refArr.Begin(); iter != refArr.End(); iter++) {
+							const Value& ref = *iter;
+
+							string lang;
+							if (ref.HasMember("lang")) {
+								lang = ref["lang"].GetString();
+								if (lang == "C++") {
+									pair<string, bool> hdrInfo;
+									hdrInfo.first = ref["header"].GetString();
+									hdrInfo.second = ref["system"].GetBool();
+
+									m_CPPHeader.push_back(hdrInfo);
+								}
+								else if (lang == "C#") {
+									// .. to do
+								}
+								else {
+									DebugBreak();
+								}
+							}
+							else {
+								DebugBreak();
+							}
+						}
+					}
+					else {
+						DebugBreak();
+					}
+				}
 				else if (type == "constant") {
 					string constGroup;
 

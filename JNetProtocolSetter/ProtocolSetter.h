@@ -16,6 +16,8 @@ class ProtocolSetter
 {
 	std::map<string, map<string, string>> m_DataTypeMap;
 	std::list<pair<string, string>> m_MessageFormatMap;
+	std::list<pair<string, bool>>	m_CPPHeader;
+	std::list<string>				m_CSharpUsing;
 	std::list<pair<string, list<pair<string, int>>>> m_Constants;
 	
 	struct Enum {
@@ -69,6 +71,9 @@ public:
 		outputFile << "using System;" << endl;
 		outputFile << "using System.Runtime.InteropServices;" << endl << endl;
 
+		// using 입력
+		PrintInclude(outputFile, "C#");
+
 		// 상수 입력
 		PrintConstant(outputFile, "C#");
 
@@ -92,6 +97,9 @@ public:
 		outputFile << "#pragma once" << endl;
 		outputFile << "#include <minwindef.h>" << endl << endl;
 
+		// 헤더 입력
+		PrintInclude(outputFile, "C++");
+
 		// 상수 입력
 		PrintConstant(outputFile, "C++");
 
@@ -106,6 +114,26 @@ public:
 	}
 
 private:
+	void PrintInclude(std::ofstream& outputFile, string lang) {
+		if (lang == "C#") {
+			for (const auto& csUsing : m_CSharpUsing) {
+				outputFile << "using " << csUsing << endl;
+			}
+		}
+		else if (lang == "C++") {
+			for (const auto& hdr : m_CPPHeader) {
+				if (hdr.second) {
+					outputFile << "#include <" << hdr.first << ">" << endl;
+				}
+				else {
+					outputFile << "#include \"" << hdr.first << "\"" << endl;
+				}
+			}
+		}
+
+		outputFile << endl;
+	}
+
 	void PrintConstant(std::ofstream& outputFile, string langType) {
 		for (auto constantGroup : m_Constants) {
 			string constantGroupName = constantGroup.first;
