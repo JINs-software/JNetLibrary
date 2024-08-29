@@ -516,7 +516,9 @@ private:
 			void EnterSessionGroup(SessionID64 sessionID, GroupID enterGroup);
 			void LeaveSessionGroup(SessionID64 sessionID);
 			void ForwardSessionGroup(SessionID64 sessionID, GroupID from, GroupID to);
-			void SendMessageGroupToGroup(SessionID64 sessionID, JBuffer* groupMsg);
+			//void SendMessageGroupToGroup(SessionID64 sessionID, JBuffer* groupMsg);
+			void ForwardMessage(SessionID64 sessionID, JBuffer* msg);
+			void SendGroupMessage(GroupID groupID, JBuffer* groupMsg);
 
 		private:
 			virtual void OnRecv(SessionID64 sessionID, JSerialBuffer& recvSerialBuff) override;
@@ -543,9 +545,10 @@ private:
 				JBuffer*	msgPtr;
 			};
 			enum GroupTheradMessageType {
-				enCilentEnter,
-				enClientLeave,
-				enMessage,
+				enSessionEnter,
+				enSessionLeave,
+				enSessionMessage,
+				enGroupMessage,
 			};
 			LockFreeQueue<GroupTheradMessage>					m_LockFreeMessageQueue;
 
@@ -573,14 +576,17 @@ private:
 				m_GroupThreadStop = true;
 			}
 
-			inline void EnterClient(SessionID64 sessionID) {
-				m_LockFreeMessageQueue.Enqueue({ sessionID, enCilentEnter, NULL });
+			inline void EnterSession(SessionID64 sessionID) {
+				m_LockFreeMessageQueue.Enqueue({ sessionID, enSessionEnter, NULL });
 			}
-			inline void LeaveClient(SessionID64 sessionID) {
-				m_LockFreeMessageQueue.Enqueue({ sessionID, enClientLeave, NULL });
+			inline void LeaveSession(SessionID64 sessionID) {
+				m_LockFreeMessageQueue.Enqueue({ sessionID, enSessionLeave, NULL });
 			}
-			inline void PushRecvBuff(SessionID64 sessionID, JBuffer* recvData) {
-				m_LockFreeMessageQueue.Enqueue({ sessionID, enMessage, recvData });
+			inline void PushSessionMessage(SessionID64 sessionID, JBuffer* msg) {
+				m_LockFreeMessageQueue.Enqueue({ sessionID, enSessionMessage, msg });
+			}
+			inline void PushGroupMessage(JBuffer* msg) {
+				m_LockFreeMessageQueue.Enqueue({ 0, enGroupMessage, msg });
 			}
 
 		protected:
@@ -614,8 +620,11 @@ private:
 			inline void ForwardSessionToGroup(SessionID64 sessionID, GroupID destGroup) {
 				m_Server->ForwardSessionGroup(sessionID, m_GroupID, destGroup);
 			}
-			inline void SendMessageGroupToGroup(SessionID64 sessionID, JBuffer* msg) {
-				m_Server->SendMessageGroupToGroup(sessionID, msg);
+			inline void ForwardSessionMessage(SessionID64 sessionID, JBuffer* msg) {
+				m_Server->ForwardMessage(sessionID, msg);
+			}
+			inline void SendGroupMessage(GroupID groupID, JBuffer* msg) {
+				m_Server->SendGroupMessage(groupID, msg);
 			}
 
 			inline DWORD AllocTlsMemPool() {
@@ -641,6 +650,7 @@ private:
 			virtual void OnEnterClient(SessionID64 sessionID) = 0;
 			virtual void OnLeaveClient(SessionID64 sessionID) = 0;
 			virtual void OnMessage(SessionID64 sessionID, JBuffer& recvData) = 0;
+			virtual void OnGroupMessage(JBuffer& msg) = 0;
 
 		private:
 			static UINT __stdcall SessionGroupThreadFunc(void* arg);

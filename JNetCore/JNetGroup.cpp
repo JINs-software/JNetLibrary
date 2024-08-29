@@ -31,7 +31,7 @@ void JNetGroupServer::EnterSessionGroup(SessionID64 sessionID, GroupID enterGrou
 	m_SessionGroupMap.insert({ sessionID, enterGroup });
 	ReleaseSRWLockExclusive(&m_SessionGroupMapSrwLock);
 
-	m_GroupThreads[enterGroup]->EnterClient(sessionID);
+	m_GroupThreads[enterGroup]->EnterSession(sessionID);
 
 }
 void JNetGroupServer::LeaveSessionGroup(SessionID64 sessionID) {
@@ -44,7 +44,7 @@ void JNetGroupServer::LeaveSessionGroup(SessionID64 sessionID) {
 	m_SessionGroupMap.erase(sessionID);
 	ReleaseSRWLockExclusive(&m_SessionGroupMapSrwLock);
 
-	m_GroupThreads[groupID]->LeaveClient(sessionID);
+	m_GroupThreads[groupID]->LeaveSession(sessionID);
 }
 void JNetGroupServer::ForwardSessionGroup(SessionID64 sessionID, GroupID from, GroupID to) {
 	AcquireSRWLockExclusive(&m_SessionGroupMapSrwLock);
@@ -54,11 +54,11 @@ void JNetGroupServer::ForwardSessionGroup(SessionID64 sessionID, GroupID from, G
 	m_SessionGroupMap[sessionID] = to;
 	ReleaseSRWLockExclusive(&m_SessionGroupMapSrwLock);
 
-	m_GroupThreads[from]->LeaveClient(sessionID);
-	m_GroupThreads[to]->EnterClient(sessionID);
+	m_GroupThreads[from]->LeaveSession(sessionID);
+	m_GroupThreads[to]->EnterSession(sessionID);
 }
 
-void jnet::jgroup::JNetGroupServer::SendMessageGroupToGroup(SessionID64 sessionID, JBuffer* msg)
+void jnet::jgroup::JNetGroupServer::ForwardMessage(SessionID64 sessionID, JBuffer* msg)
 {
 	AcquireSRWLockShared(&m_SessionGroupMapSrwLock);
 	auto iter = m_SessionGroupMap.find(sessionID);
@@ -68,7 +68,13 @@ void jnet::jgroup::JNetGroupServer::SendMessageGroupToGroup(SessionID64 sessionI
 	GroupID groupID = iter->second;
 	ReleaseSRWLockShared(&m_SessionGroupMapSrwLock);
 
-	m_GroupThreads[groupID]->PushRecvBuff(sessionID, msg);
+	m_GroupThreads[groupID]->PushSessionMessage(sessionID, msg);
+}
+
+void jnet::jgroup::JNetGroupServer::SendGroupMessage(GroupID groupID, JBuffer* groupMsg){
+	if (m_GroupThreads.find(groupID) != m_GroupThreads.end()) {
+		m_GroupThreads[groupID]->PushGroupMessage(groupMsg);
+	}
 }
 
 
@@ -86,7 +92,7 @@ void JNetGroupServer::OnRecv(SessionID64 sessionID, JSerialBuffer& recvSerialBuf
 	recvSerialBuff.Dequeue(recvData->GetEnqueueBufferPtr(), serialBuffSize);
 	recvData->DirectMoveEnqueueOffset(serialBuffSize);
 
-	m_GroupThreads[groupID]->PushRecvBuff(sessionID, recvData);
+	m_GroupThreads[groupID]->PushSessionMessage(sessionID, recvData);
 }
 
 void JNetGroupServer::OnRecv(SessionID64 sessionID, JBuffer& recvBuff)
@@ -109,7 +115,7 @@ void JNetGroupServer::OnRecv(SessionID64 sessionID, JBuffer& recvBuff)
 		recvData->Enqueue(recvBuff.GetBeginBufferPtr(), recvBuff.GetUseSize() - dirDeqSize);
 	}
 
-	m_GroupThreads[groupID]->PushRecvBuff(sessionID, recvData);
+	m_GroupThreads[groupID]->PushSessionMessage(sessionID, recvData);
 }
 
 UINT __stdcall JNetGroupThread::SessionGroupThreadFunc(void* arg) {
@@ -146,23 +152,30 @@ UINT __stdcall JNetGroupThread::SessionGroupThreadFunc(void* arg) {
 			if (groupthread->m_LockFreeMessageQueue.Dequeue(message, true)) {
 				
 				switch (message.msgType) {
-				case enCilentEnter:
+				case enSessionEnter:
 				{
 					// 그룹 스레드에 클라이언트 Enter
 					groupthread->OnEnterClient(message.sessionID);
 				}
 				break;
-				case enClientLeave:
+				case enSessionLeave:
 				{
 					// 그룹 스레드에 클라이언트 Leave
 					groupthread->OnLeaveClient(message.sessionID);
 				}
 				break;
-				case enMessage:
+				case enSessionMessage:
 				{
-					JBuffer* recvData = message.msgPtr;
-					groupthread->OnMessage(message.sessionID, *recvData);
-					groupthread->FreeSerialBuff(recvData);
+					JBuffer* recvMsg = message.msgPtr;
+					groupthread->OnMessage(message.sessionID, *recvMsg);
+					groupthread->FreeSerialBuff(recvMsg);
+				}
+				break;
+				case enGroupMessage:
+				{
+					JBuffer* recvMsg = message.msgPtr;
+					groupthread->OnGroupMessage(*recvMsg);
+					groupthread->FreeSerialBuff(recvMsg);
 				}
 				break;
 				default:
