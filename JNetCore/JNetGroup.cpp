@@ -73,7 +73,7 @@ void jnet::jgroup::JNetGroupServer::ForwardMessage(SessionID64 sessionID, JBuffe
 
 void jnet::jgroup::JNetGroupServer::SendGroupMessage(GroupID groupID, JBuffer* groupMsg){
 	if (m_GroupThreads.find(groupID) != m_GroupThreads.end()) {
-		m_GroupThreads[groupID]->PushGroupMessage(groupMsg);
+		m_GroupThreads[groupID]->PushGroupMessage(groupID, groupMsg);
 	}
 }
 
@@ -155,26 +155,26 @@ UINT __stdcall JNetGroupThread::SessionGroupThreadFunc(void* arg) {
 				case enSessionEnter:
 				{
 					// 그룹 스레드에 클라이언트 Enter
-					groupthread->OnEnterClient(message.sessionID);
+					groupthread->OnEnterClient(message.msgSenderID);
 				}
 				break;
 				case enSessionLeave:
 				{
 					// 그룹 스레드에 클라이언트 Leave
-					groupthread->OnLeaveClient(message.sessionID);
+					groupthread->OnLeaveClient(message.msgSenderID);
 				}
 				break;
 				case enSessionMessage:
 				{
 					JBuffer* recvMsg = message.msgPtr;
-					groupthread->OnMessage(message.sessionID, *recvMsg);
+					groupthread->OnMessage(message.msgSenderID, *recvMsg);
 					groupthread->FreeSerialBuff(recvMsg);
 				}
 				break;
 				case enGroupMessage:
 				{
 					JBuffer* recvMsg = message.msgPtr;
-					groupthread->OnGroupMessage(*recvMsg);
+					groupthread->OnGroupMessage(message.msgSenderID, *recvMsg);
 					groupthread->FreeSerialBuff(recvMsg);
 				}
 				break;

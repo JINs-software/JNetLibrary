@@ -540,7 +540,7 @@ private:
 			bool							m_GroupThreadStop;
 
 			struct GroupTheradMessage {
-				SessionID64	sessionID;
+				UINT64	msgSenderID;
 				BYTE		msgType;
 				JBuffer*	msgPtr;
 			};
@@ -585,8 +585,8 @@ private:
 			inline void PushSessionMessage(SessionID64 sessionID, JBuffer* msg) {
 				m_LockFreeMessageQueue.Enqueue({ sessionID, enSessionMessage, msg });
 			}
-			inline void PushGroupMessage(JBuffer* msg) {
-				m_LockFreeMessageQueue.Enqueue({ 0, enGroupMessage, msg });
+			inline void PushGroupMessage(GroupID groupID, JBuffer* msg) {
+				m_LockFreeMessageQueue.Enqueue({ groupID, enGroupMessage, msg });
 			}
 
 		protected:
@@ -650,7 +650,7 @@ private:
 			virtual void OnEnterClient(SessionID64 sessionID) = 0;
 			virtual void OnLeaveClient(SessionID64 sessionID) = 0;
 			virtual void OnMessage(SessionID64 sessionID, JBuffer& recvData) = 0;
-			virtual void OnGroupMessage(JBuffer& msg) = 0;
+			virtual void OnGroupMessage(GroupID groupID, JBuffer& msg) = 0;
 
 		private:
 			static UINT __stdcall SessionGroupThreadFunc(void* arg);
