@@ -624,7 +624,7 @@ private:
 				m_Server->ForwardMessage(sessionID, msg);
 			}
 			inline void SendGroupMessage(GroupID groupID, JBuffer* msg) {
-				m_Server->SendGroupMessage(groupID, m_GroupID, msg);
+				m_Server->SendGroupMessage(m_GroupID, groupID, msg);
 			}
 
 			inline DWORD AllocTlsMemPool() {
