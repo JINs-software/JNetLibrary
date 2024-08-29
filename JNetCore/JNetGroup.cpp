@@ -71,9 +71,9 @@ void jnet::jgroup::JNetGroupServer::ForwardMessage(SessionID64 sessionID, JBuffe
 	m_GroupThreads[groupID]->PushSessionMessage(sessionID, msg);
 }
 
-void jnet::jgroup::JNetGroupServer::SendGroupMessage(GroupID groupID, JBuffer* groupMsg){
-	if (m_GroupThreads.find(groupID) != m_GroupThreads.end()) {
-		m_GroupThreads[groupID]->PushGroupMessage(groupID, groupMsg);
+void jnet::jgroup::JNetGroupServer::SendGroupMessage(GroupID from, GroupID to, JBuffer* groupMsg){
+	if (m_GroupThreads.find(to) != m_GroupThreads.end()) {
+		m_GroupThreads[to]->PushGroupMessage(from, groupMsg);
 	}
 }
 

@@ -518,7 +518,7 @@ private:
 			void ForwardSessionGroup(SessionID64 sessionID, GroupID from, GroupID to);
 			//void SendMessageGroupToGroup(SessionID64 sessionID, JBuffer* groupMsg);
 			void ForwardMessage(SessionID64 sessionID, JBuffer* msg);
-			void SendGroupMessage(GroupID groupID, JBuffer* groupMsg);
+			void SendGroupMessage(GroupID from, GroupID to, JBuffer* groupMsg);
 
 		private:
 			virtual void OnRecv(SessionID64 sessionID, JSerialBuffer& recvSerialBuff) override;
@@ -585,8 +585,8 @@ private:
 			inline void PushSessionMessage(SessionID64 sessionID, JBuffer* msg) {
 				m_LockFreeMessageQueue.Enqueue({ sessionID, enSessionMessage, msg });
 			}
-			inline void PushGroupMessage(GroupID groupID, JBuffer* msg) {
-				m_LockFreeMessageQueue.Enqueue({ groupID, enGroupMessage, msg });
+			inline void PushGroupMessage(GroupID senderGroupID, JBuffer* msg) {
+				m_LockFreeMessageQueue.Enqueue({ senderGroupID, enGroupMessage, msg });
 			}
 
 		protected:
@@ -624,7 +624,7 @@ private:
 				m_Server->ForwardMessage(sessionID, msg);
 			}
 			inline void SendGroupMessage(GroupID groupID, JBuffer* msg) {
-				m_Server->SendGroupMessage(groupID, msg);
+				m_Server->SendGroupMessage(groupID, m_GroupID, msg);
 			}
 
 			inline DWORD AllocTlsMemPool() {
