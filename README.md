@@ -60,14 +60,8 @@ IOCP 모델을 적용한 네트워크 코어 라이브러리이다. 내부에서
     JNetServer와 JNetClient에서 수행됨. 연결 요청 및 수립 시 비동기
     송수신의 관리를 위한 등록 요청을 해당 함수를 호출함으로써 진행.
 
--   **AcquireSession, ReturnSession**
+-   **AcquireSession, ReturnSession**: 라이브러리 내 코드에서 세션에 접근 시 AcquireSession 함수를 통해 참조가 이루어져야 한다. 윈도우 Interlocked 계열의 함수를 통해 참조하고자 하던 세션만을 참조하거나 포기하는 'all-or-nothing' 과정을 밟는다. 참조를 완료한 세션은 ReturnSession을 통해 반환하여 참조 관리 변수를 갱신함.
 
-> 라이브러리 내 코드에서 세션에 접근 시 AcquireSession 함수를 통해
-> 참조가 이루어져야 한다. 윈도우 Interlocked 계열의 함수를 통해
-> 참조하고자 하던 세션만을 참조하거나 포기하는 'all-or-nothing' 과정을
-> 밟는다. 참조를 완료한 세션은 ReturnSession을 통해 반환하여 참조 관리
-> 변수를 갱신함.
->
 > **(컨텐츠 단 호출 함수)**
 
 -   **Disconnect:** 컨텐츠 코드에서 호출될 수 있는 API임.
