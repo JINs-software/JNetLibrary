@@ -14,6 +14,7 @@ IOCP 모델을 적용한 네트워크 코어 라이브러리이다. 내부에서
 ### \[코어 라이브러리와 주요 멤버\]
 
 1.  *JNetCore: JNetLibrary 최상위 부모 클래스*
+   
 ![JNetCore_class](https://github.com/user-attachments/assets/5d5f6060-b2ec-4ad5-ac36-ab784f872a0b)
 
 -   주요 멤버 변수
