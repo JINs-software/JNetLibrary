@@ -37,26 +37,26 @@ IOCP 모델을 적용한 네트워크 코어 라이브러리이다. 내부에서
 -   **주요 멤버 함수**
 
 **(라이브러리 호출 함수)**
--   **CreateNewSession, DeleteSession:** JNetCore 하위 클래스에서 세션
-    생성 및 삭제 요청을 위한 함수. 예를 들어 **JNetServer** 클래스에서
-    Accept 후 세션 객체를 생성 시 그리고 TCP 연결 종료 판단 시 세션
-    제거를 위해 호출. JNetSession 세션 클래스의 멤버와 Interlocked
-    계열의 함수를 통해 세션 삭제 요청 시 참조가 없는 세션에 대한
-    삭제만을 진행
+    -   **CreateNewSession, DeleteSession:** JNetCore 하위 클래스에서 세션
+        생성 및 삭제 요청을 위한 함수. 예를 들어 **JNetServer** 클래스에서
+        Accept 후 세션 객체를 생성 시 그리고 TCP 연결 종료 판단 시 세션
+        제거를 위해 호출. JNetSession 세션 클래스의 멤버와 Interlocked
+        계열의 함수를 통해 세션 삭제 요청 시 참조가 없는 세션에 대한
+        삭제만을 진행
 > (이미지)
 >
 > (이미지)
--   **RegisterSessionToIOCP:** 세션에 대한 관리와 IOCP를 통한 비동기
-    송수신이 JNetCore에서 이루어지고, TCP 연결 요청 및 수립은 하위의
-    JNetServer와 JNetClient에서 수행됨. 연결 요청 및 수립 시 비동기
-    송수신의 관리를 위한 등록 요청을 해당 함수를 호출함으로써 진행.
-
--   **AcquireSession, ReturnSession**: 라이브러리 내 코드에서 세션에 접근 시 AcquireSession 함수를 통해
-    참조가 이루어져야 한다. 윈도우 Interlocked 계열의 함수를 통해
-    참조하고자 하던 세션만을 참조하거나 포기하는 'all-or-nothing' 과정을
-    밟는다. 참조를 완료한 세션은 ReturnSession을 통해 반환하여 참조 관리
-    변수를 갱신함.
+    -   **RegisterSessionToIOCP:** 세션에 대한 관리와 IOCP를 통한 비동기
+        송수신이 JNetCore에서 이루어지고, TCP 연결 요청 및 수립은 하위의
+        JNetServer와 JNetClient에서 수행됨. 연결 요청 및 수립 시 비동기
+        송수신의 관리를 위한 등록 요청을 해당 함수를 호출함으로써 진행.
     
+    -   **AcquireSession, ReturnSession**: 라이브러리 내 코드에서 세션에 접근 시 AcquireSession 함수를 통해
+        참조가 이루어져야 한다. 윈도우 Interlocked 계열의 함수를 통해
+        참조하고자 하던 세션만을 참조하거나 포기하는 'all-or-nothing' 과정을
+        밟는다. 참조를 완료한 세션은 ReturnSession을 통해 반환하여 참조 관리
+        변수를 갱신함.
+
 > **(컨텐츠 단 호출 함수)**
 
 -   **Disconnect:** 컨텐츠 코드에서 호출될 수 있는 API임.
