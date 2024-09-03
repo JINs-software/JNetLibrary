@@ -12,9 +12,7 @@
 ### \[기술 스택\]
 
 -   C++
-
 -   Window IOCP, socket programming
-
 -   Window multi-thread programming
 
 >  
