@@ -91,7 +91,7 @@ IOCP 모델을 적용한 네트워크 코어 라이브러리이다. 내부에서
             (postToworker)
         -   반응성에 대한 타협 -&gt; BuffereSendPacekt,
             SendBufferedPacket
-
+--
 2.  *JNetServer*
 JNetCore의 자식 클래스, 클라이언트 연결 요청을 수립하며, 연결 시 세션
 관리를 위한 객체 생성 및 비동기 송수신 관리를 JNetCore 상속 멤버들을
@@ -138,7 +138,7 @@ JNetCore의 자식 클래스, 클라이언트 연결 요청을 수립하며, 연
             함수 호출 빈도를 줄여 성능을 향상시키고자 추가된 버전의 함수
 -   **이슈 사항(Issue)**
     -   OnRecv의 두 가지 버전
-
+--
 3.  *JNetGroupServer와 JNetGroupThread*
 코어 단에서 분기된 스레드를 통해 싱글 스레드 수행에 의존할 수 있음
 
