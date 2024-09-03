@@ -6,6 +6,17 @@ IOCP 모델을 적용한 네트워크 코어 라이브러리이다. 내부에서
 함수를 재정의하여 클라이언트 연결 및 종료를 관리하고, 수신된 패킷을
 처리하며, 컨텐츠 패킷을 송신한다.
 
+#### (Refactoring CLanServer)
+https://github.com/JINs-software/CLanLibrary
+JNetLibrary는 기존 네트워크 코어 라이브러리인 'CLanLibrary'를 개량한 라이브러리이다.
+리포지토리의 LoginServer, ChattingServer, EchoGameServer는 CLanLibrary를 상속하여 만든 프로젝트이며, 현재 JNetLibrary을 활용한 서버 프로젝트는 EchoGameServer_withJNet과 MarchOfWind(MOW, 스타크래프트 유즈맵 게임인 '신전 뿌수기' 류의 게임 모작)이 있다. 추후 채팅 서버와 로그인 서버도 JNetLibrary를 활용한 버전으로 변경 예정
+
+(CLanLibrary)
+![image](https://github.com/user-attachments/assets/888ad421-d575-4cfd-b2df-000025d306f6)
+
+(JNetLibary)
+![image](https://github.com/user-attachments/assets/5fe9db37-78a4-4493-8450-d8042e642343)
+
 ### \[기술 스택\]
 -   C++
 -   Window IOCP, socket programming
