@@ -14,7 +14,8 @@ IOCP 모델을 적용한 네트워크 코어 라이브러리이다. 내부에서
 ### \[코어 라이브러리와 주요 멤버\]
 1.  *JNetCore: JNetLibrary 최상위 부모 클래스*
 
-> ( 이미지 )
+![JNetCore_class](https://github.com/user-attachments/assets/686c71da-e351-4630-8152-6a96debafe32)
+
 
 -   **주요 멤버 변수**
     -   **m\_Session: 세션 관리 벡터:** 클라이언트 세션은 JNetSession
@@ -107,7 +108,8 @@ JNetCore의 자식 클래스, 클라이언트 연결 요청을 수립하며, 연
 통해 수행. JNetServer 생성자 옵션에 따라 메시지 송수신 시 자체
 프로토콜 인코딩, 디코딩을 수행하는 랩퍼 함수를 제공함.
 
-> (이미지)
+![JNetServer](https://github.com/user-attachments/assets/0983d540-6e2a-4a74-a75d-cc02bf00aeee)
+
 
 -   **주요 멤버 변수**
     -   **m\_ListenSocket:** JNetServer는 JNetCore에서 서버의 역할이
@@ -150,7 +152,8 @@ JNetCore의 자식 클래스, 클라이언트 연결 요청을 수립하며, 연
 3.  *JNetGroupServer와 JNetGroupThread*
 코어 단에서 분기된 스레드를 통해 싱글 스레드 수행에 의존할 수 있음
 
-> (이미지)
+![JNetGroup](https://github.com/user-attachments/assets/9f8070e4-78a6-4e4d-a5cb-a7ccc1653964)
+
 
 -   **주요 멤버 변수 (JNetGroupServer)**
     -   **m\_SessionGroupMap:** 세션은 개별 그룹에 속하게 되고, 개별
