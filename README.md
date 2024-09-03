@@ -43,23 +43,19 @@ IOCP 모델을 적용한 네트워크 코어 라이브러리이다. 내부에서
         제거를 위해 호출. JNetSession 세션 클래스의 멤버와 Interlocked
         계열의 함수를 통해 세션 삭제 요청 시 참조가 없는 세션에 대한
         삭제만을 진행
-        
     -   **RegisterSessionToIOCP:** 세션에 대한 관리와 IOCP를 통한 비동기
         송수신이 JNetCore에서 이루어지고, TCP 연결 요청 및 수립은 하위의
         JNetServer와 JNetClient에서 수행됨. 연결 요청 및 수립 시 비동기
         송수신의 관리를 위한 등록 요청을 해당 함수를 호출함으로써 진행.
-        
     -   **AcquireSession, ReturnSession**: 라이브러리 내 코드에서 세션에 접근 시 AcquireSession 함수를 통해
         참조가 이루어져야 한다. 윈도우 Interlocked 계열의 함수를 통해
         참조하고자 하던 세션만을 참조하거나 포기하는 'all-or-nothing' 과정을
         밟는다. 참조를 완료한 세션은 ReturnSession을 통해 반환하여 참조 관리
         변수를 갱신함.
-
     -   **Disconnect:** 컨텐츠 코드에서 호출될 수 있는 API임.
         PostQueuedCompletionStatus를 통해 IOCP 작업자 스레드에게 삭제의
         잡으로 전달됨. 세션의 참조 카운트가 1 이상(점유 상태)임이 보장된
         상태에서 호출되며, 라이브러리에 세션 삭제를 요청하는 함수.
-        
     -   **SendPacket:** 클라이언트 세션 ID와 직렬화 버퍼(JBuffer, 추후
         설명)를 인수로 전달하여 패킷 전송을 요청함. SendPacket에는 해당 함수
         호출 스레드가 아닌 코어의 작업자 스레드에게 세션 송신 1회 제한
@@ -72,14 +68,12 @@ IOCP 모델을 적용한 네트워크 코어 라이브러리이다. 내부에서
             수행 스레드의 초당 처리 횟수(TPS, Transaction Per Second)를
             높이기 위한 조건이 있었고, 이를 해결하기 위한 방법으로 고안된
             옵션
-            
     -   **BufferSendPacekt, SendBufferedPacket:** 송신 1회 제한에 대한
         블로킹 없이 락-프리 큐로 구현된 송신 큐에 패킷 삽입만 진행, 그리고
         SendBufferedPacket 호출로 적재된 송신 패킷들을 일괄적으로 보냄.
         반응성이 중요한 서버가 아닐 시 한 프레임에 세션 별로 보내야 할
         메시지들을 BufferedSendPacket을 호출하고, 프레임 후반부에 한 번 씩
         호출함으로써 처리량을 높임.
-        
     -   **AllocTlsMemPool, AllocSerialBuff, FreeSerialBuff, AddRefSerialBuff:** 라이브러리 및 컨텐츠 코드에서 스레드 분기 시
         AllocTlsMemPool를 호출하면 독립적인 메모리 풀을 할당 받을 수 있음.
         AllocSerialBuff를 통해 스레드 간 경합 없이 독립적인 메모리 풀로부터
@@ -88,11 +82,7 @@ IOCP 모델을 적용한 네트워크 코어 라이브러리이다. 내부에서
         송신 시 이를 공유하는 방식으로 복사 오버헤드를 줄임. 여기에 사용되는
         함수가 AddRefSerialBuff로 할당 메모리 버퍼에 대한 참조 카운팅을
         수행하여 중복 반환을 막음.
-
     -   **On~ 접두사의 함수들**: JNetCore 단의 이벤트 가상 함수는 스레드 생성과 시작 및 중지
-
-<!-- -->
-
 -   **이슈 사항(Issue)**
     -   세션 객체(JNetSession)의 생성 및 삭제에 있어서의 동기화
     -   송신 1회 제한에 대한 동기화
