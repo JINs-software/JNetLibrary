@@ -10,16 +10,13 @@
 ### \[기술 스택\]
 
 -   C++
-
 -   Window IOCP, socket programming
-
 -   Window multi-thread programming
 
 ### \[코어 라이브러리와 주요 멤버\]
 
 1.  *JNetCore: JNetLibrary 최상위 부모 클래스*
-
-> ( 이미지 )
+![JNetCore_class](https://github.com/user-attachments/assets/5d5f6060-b2ec-4ad5-ac36-ab784f872a0b)
 
 -   주요 멤버 변수
 
@@ -136,13 +133,8 @@
 >  
 
 1.  *JNetServer*
+JNetCore의 자식 클래스, 클라이언트 연결 요청을 수립하며, 연결 시 세션 관리를 위한 객체 생성 및 비동기 송수신 관리를 JNetCore 상속 멤버들을 통해 수행. JNetServer 생성자 옵션에 따라 메시지 송수신 시 자체 프로토콜 인코딩, 디코딩을 수행하는 랩퍼 함수를 제공함.
 
-> JNetCore의 자식 클래스, 클라이언트 연결 요청을 수립하며, 연결 시 세션
-> 관리를 위한 객체 생성 및 비동기 송수신 관리를 JNetCore 상속 멤버들을
-> 통해 수행. JNetServer 생성자 옵션에 따라 메시지 송수신 시 자체
-> 프로토콜 인코딩, 디코딩을 수행하는 랩퍼 함수를 제공함.
->
-> (이미지)
 
 -   **주요 멤버 변수**
 
