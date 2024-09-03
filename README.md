@@ -12,7 +12,8 @@ IOCP 모델을 적용한 네트워크 코어 라이브러리이다. 내부에서
 -   Window multi-thread programming
 
 ### \[코어 라이브러리와 주요 멤버\]
-###1.  JNetCore: JNetLibrary 최상위 부모 클래스
+
+### *1.  JNetCore: JNetLibrary 최상위 부모 클래스*
 
 ![JNetCore_class](https://github.com/user-attachments/assets/686c71da-e351-4630-8152-6a96debafe32)
 
@@ -94,7 +95,7 @@ IOCP 모델을 적용한 네트워크 코어 라이브러리이다. 내부에서
             
 ---
 
-###*2.  JNetServer*
+### *2.  JNetServer*
 JNetCore의 자식 클래스, 클라이언트 연결 요청을 수립하며, 연결 시 세션
 관리를 위한 객체 생성 및 비동기 송수신 관리를 JNetCore 상속 멤버들을
 통해 수행. JNetServer 생성자 옵션에 따라 메시지 송수신 시 자체
@@ -143,7 +144,7 @@ JNetCore의 자식 클래스, 클라이언트 연결 요청을 수립하며, 연
 
 ---
 
-###*3.  JNetGroupServer와 JNetGroupThread*
+### *3.  JNetGroupServer와 JNetGroupThread*
 코어 단에서 분기된 스레드를 통해 싱글 스레드 수행에 의존할 수 있음
 
 ![JNetGroup](https://github.com/user-attachments/assets/9f8070e4-78a6-4e4d-a5cb-a7ccc1653964)
