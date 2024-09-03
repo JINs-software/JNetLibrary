@@ -1,6 +1,4 @@
-1\. JNetLibrary
-
-# \[개요\]
+### \[개요\]
 
 > IOCP 모델을 적용한 네트워크 코어 라이브러리이다. 내부에서 자체적으로
 > 세션 연결을 관리하고, IOCP 작업자 스레드를 통해 클라이언트와 비동기
@@ -11,108 +9,78 @@
 >
 >  
 
--   기술 스택
+### \[기술 스택\]
 
-    -   C++
+-   C++
 
-    -   IOCP, 윈도우 소켓 프로그래밍
+-   Window IOCP, socket programming
 
-    -   Multi-thread 프로그래밍
+-   Window multi-thread programming
 
 >  
 
-# \[코어 라이브러리와 주요 멤버\]
+### \[코어 라이브러리와 주요 멤버\]
 
-## \[JNetCore\]
+1.  ***JNetCore:** JNetLibrary 최상위 부모 클래스*
 
-> JNetLibrary 최상위 부모 클래스
->
-> <img src="media/image1.png" style="width:4.25833in;height:7.46667in" />
+> \![JNetCore\_class\](https://github.com/user-attachments/assets/4bdd9fae-c65b-4fad-a723-ce3d358a08f1)
 
  
 
 -   주요 멤버 변수
 
-    -   **m\_Session: 세션 관리 벡터**
+    -   **m\_Session: 세션 관리 벡터:** 클라이언트 세션은 JNetSession
+        클래스로 관리, JNetSession은 세션 ID와 참조 관리 변수, 네트워크
+        송수신을 위한 소켓/송수신 버퍼를 가짐.
 
-> 클라이언트 세션은 JNetSession 클래스로 관리, JNetSession은 세션 ID와
-> 참조 관리 변수, 네트워크 송수신을 위한 소켓/송수신 버퍼를 가짐.
+        -   **JNetSession::SessionID:** 16비트의 인덱스 부와 48비트의
+            증분 부 존재. 16비트의 인덱스는 활성화된 세션에 붙여지는
+            고유한 값이며, 세션 참조를 위한 벡터 자료구조의 인덱스와
+            맵핑.
 
--   **JNetSession::SessionID**
+> 48비트의 증분 부(세션 생성 시 증분)와 함께 고유한 세션 ID를 생성.
 
-> JNetSession 객체들은 벡터를 통해 관리됨. 기존 log(N) 접근의 std::map
-> 자료구조에서 'JNetSession::SessionID'의 인덱스(idx) 부를 추가하고
-> 활용함으로써 접근의 시간 복잡도가 log(N) std::map를 통한 관리에서
-> 벡터로 변경하였음. 전체 세션을 순회하기보단 검색 및 참조가 빈번하기에
-> 벡터로의 관리가 유리하다고 판단.
+-   **JNetSession::SessionRef:** 윈도우 Interlocked 계열 함수인
+    'InterlockedCompareExchange'을 통한 원자적으로 비교 및 변경의 대상이
+    되며 IOCP 작업자 스레드 및 컨텐츠 코드에서의 접근하는 세션 객체의
+    참조를 관리.
 
--   **JNetSession::SessionRef**
+<!-- -->
 
-> 세션은 송수신을 담당하는 IOCP 작업자 스레드 간 뿐 아니라 게임 서버의
-> 컨텐츠 코드에서도 동시 참조되는 시점이 존재. 이에
-> 'JNetSession::SessionRef'를 도입하여 참조에 대한 관리를 도움.
->
-> 윈도우 Interlocked 계열 함수인 'InterlockedCompareExchange'를 활용하여
-> 참조 카운트와 참조 플래그 변수를 원자적으로 비교 및 변경하여 한 쪽
-> 스레드에서 참조 중인데 다른 스레드에서 세션이 삭제되는 상황을 막음.
+-   **m\_TlsMemPoolMgr:** TLS(Thread Local Storage)를 활용한 메모리 풀을
+    사용할 수 있음. IOCP 작업자 스레드 및 기타 스레드는 이 독립적인
+    메모리 풀을 활용함. 대표적으로 송신 패킷 메모리를 할당받고, 송신
+    완료 시 반환함(https://github.com/JINs-software/MemoryPool).
 
--   **m\_SessionIndexQueue, m\_SessionIncrement**
-
-> JNetSession ID의 인덱스(idx) 부와 증분(increment) 부를 설정. 인덱스는
-> 작업자 스레드들이 공유하는 세션 관리 벡터의 인덱스로 활용되기에 세션의
-> 생성 및 삭제에서의 동기화를 위해 락-프리 큐를 활용하여 원자적으로
-> 인덱스를 할당 받는 방식. ID의 증분 부는 단순 증가하며 세션 생성 시
-> 사용되지만, 고유한 인덱스와 증분 부의 조합을 통해 컨텐츠 코드는 세션
-> ID의 고유성을 보장 받을 수 있음.
-
--   **m\_TlsMemPoolMgr**
-
-> TLS(스레드 로컬 스토리지)를 활용한 메모리 풀을 사용할 수 있음. IOCP
-> 작업자 스레드 및 기타 스레드는 이 독립적인 메모리 풀을 활용함.
-> 대표적으로 송신 패킷 메모리를 할당받고, 송신 완료 시 반환함.
->
 >  
 
 -   **주요 멤버 함수**
 
 > **\[라이브러리 호출 함수\]**
 
--   **CreateNewSession, DeleteSession**
+-   **CreateNewSession, DeleteSession:** JNetCore 하위 클래스에서 세션
+    생성 및 삭제 요청을 위한 함수. 예를 들어 **JNetServer** 클래스에서
+    Accept 후 세션 객체를 생성 시 그리고 TCP 연결 종료 판단 시 세션
+    제거를 위해 호출. JNetSession 세션 클래스의 멤버와 Interlocked
+    계열의 함수를 통해 세션 삭제 요청 시 참조가 없는 세션에 대한
+    삭제만을 진행
 
-> JNetCore 자식 클래스의 또 다른 라이브러리 클래스인 **JNetServer**
-> 클래스에서 Accept 후 세션 객체를 생성 시 그리고 TCP 연결 종료 판단 시
-> 세션 제거를 위해 호출됨.
+> \![JnetCore\_CreateSession\](https://github.com/user-attachments/assets/c7a124ec-8749-4d74-8c5d-bef5dda3e460)
 >
-> 세션 관리 클래스인 JNetSession의 멤버와 Interlocked 계열의 함수를 통해
-> 생성과 삭제 시 동기화를 수행
->
-> <img src="media/image2.png" style="width:11.275in;height:2.71667in" />
->
->  
->
-> <img src="media/image3.png" style="width:8.425in;height:6.61667in" />
+> \![DeleteSession\](https://github.com/user-attachments/assets/03e09ff4-c5c2-48c3-9d76-6a355dffb46b)
 
--   **RegisterSessionToIOCP**
-
-> 세션에 대한 관리와 IOCP를 통한 비동기 송수신이 JNetCore에서
-> 이루어지고, TCP 연결 요청 및 수립은 하위의 JNetServer와 JNetClient에서
-> 수행됨. 연결 요청 및 수립 시 비동기 송수신의 관리를 위한 등록 요청을
-> 해당 함수를 호출함으로써 진행됨.
+-   **RegisterSessionToIOCP:** 세션에 대한 관리와 IOCP를 통한 비동기
+    송수신이 JNetCore에서 이루어지고, TCP 연결 요청 및 수립은 하위의
+    JNetServer와 JNetClient에서 수행됨. 연결 요청 및 수립 시 비동기
+    송수신의 관리를 위한 등록 요청을 해당 함수를 호출함으로써 진행.
 
 -   **AcquireSession, ReturnSession**
 
 > 라이브러리 내 코드에서 세션에 접근 시 AcquireSession 함수를 통해
 > 참조가 이루어져야 한다. 윈도우 Interlocked 계열의 함수를 통해
 > 참조하고자 하던 세션만을 참조하거나 포기하는 'all-or-nothing' 과정을
-> 밟는다.
->
-> 참조를 완료한 세션은 ReturnSession을 통해 참조 관리 변수를 제어한다.
->
-> <img src="media/image4.png" style="width:11.2in;height:9.19167in" />
->
-> <img src="media/image5.png" style="width:9.875in;height:5.66667in" />
->
->  
+> 밟는다. 참조를 완료한 세션은 ReturnSession을 통해 반환하여 참조 관리
+> 변수를 갱신함.
 >
 >  
 >
@@ -140,11 +108,7 @@
     초당 처리 횟수(TPS, Transaction Per Second)를 높이기 위한 조건이
     있었고, 이를 해결하기 위한 방법으로 고안된 옵션
 
-> <img src="media/image6.png" style="width:8.1in;height:4.80833in" />
->
->  
->
-> <img src="media/image7.png" style="width:14.08333in;height:10.2in" />
+<!-- -->
 
 -   **BufferSendPacekt, SendBufferedPacket**
 
@@ -200,7 +164,7 @@
 
  
 
-## \[JNetServer\]
+1.  ***JNetServer***
 
 > JNetCore의 자식 클래스, 클라이언트 연결 요청을 수립하며, 연결 시 세션
 > 관리를 위한 객체 생성 및 비동기 송수신 관리를 JNetCore 상속 멤버들을
@@ -209,7 +173,7 @@
 > JNetServer 생성자 옵션에 따라 메시지 송수신 시 자체 프로토콜 인코딩,
 > 디코딩을 수행하는 랩퍼 함수를 제공함.
 >
-> <img src="media/image8.png" style="width:4.75833in;height:3.13333in" />
+> \![JNetServer\](https://github.com/user-attachments/assets/fa417315-2437-4c14-a9bc-ec8ac25a53e1)
 >
 >  
 
@@ -236,7 +200,7 @@
 > 대한 간단한 인코딩, 디코딩을 로직을 추가하여 패킷에 대한 탈취 시
 > 메시지 해석에 대한 방지와 무결성 검증을 수행함.
 >
-> <img src="media/image9.png" style="width:10.99167in;height:3.63333in" />
+> <img src="media/image1.png" style="width:8.75in;height:2.86667in" />
 
 -   **AllocSerialSendBuff**
 
@@ -295,7 +259,7 @@
 
 > 코어 단에서 분기된 스레드를 통해 싱글 스레드 수행에 의존할 수 있음
 >
-> <img src="media/image10.png" style="width:7.15833in;height:1.96667in" />
+> <img src="media/image2.png" style="width:7.15833in;height:1.96667in" />
 >
 >  
 
