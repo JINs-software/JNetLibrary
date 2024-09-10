@@ -6,13 +6,15 @@ JNetCore::JNetCore(
 	uint16 maximumOfSessions,
 	uint32 numOfIocpConcurrentThrd, uint16 numOfIocpWorkerThrd, 
 	size_t tlsMemPoolUnitCnt, size_t tlsMemPoolUnitCapacity, bool tlsMemPoolMultiReferenceMode, bool tlsMemPoolPlacementNewMode, 
-	uint32 memPoolBuffAllocSize, uint32 sessionRecvBuffSize
+	uint32 memPoolBuffAllocSize, uint32 sessionRecvBuffSize,
+	bool calcTpsThread
 )
 	: m_MaximumOfSessions(maximumOfSessions), m_SessionIncrement(0),
 	m_NumOfIocpWorkerThrd(numOfIocpWorkerThrd),
 	m_TlsMemPoolMgr(tlsMemPoolUnitCnt, tlsMemPoolUnitCapacity, tlsMemPoolMultiReferenceMode, tlsMemPoolPlacementNewMode),
 	m_TlsMemPoolUnitCnt(tlsMemPoolUnitCnt), m_TlsMemPoolUnitCapacity(tlsMemPoolUnitCapacity),
-	m_MemPoolBuffAllocSize(memPoolBuffAllocSize)
+	m_MemPoolBuffAllocSize(memPoolBuffAllocSize),
+	m_CalcTpsFlag(calcTpsThread)
 {
 	// 1. 윈도우 네트워크 라이브러리 초기화
 	WSAData wsadata;
@@ -79,9 +81,10 @@ bool JNetCore::Start()
 			ResumeThread(m_IocpWorkerThrdHnds[idx]);
 		}
 	}
-#if defined(CALCULATE_TRANSACTION_PER_SECOND)
-	m_CalcTpsThread = (HANDLE)_beginthreadex(NULL, 0, JNetCore::CalcTpsThreadFunc, this, 0, NULL);
-#endif
+
+	if (m_CalcTpsFlag) {
+		m_CalcTpsThread = (HANDLE)_beginthreadex(NULL, 0, JNetCore::CalcTpsThreadFunc, this, 0, NULL);
+	}
 	cout << "JNetCore::Start(), Create IOCP Worker Threads Done.." << endl;
 
 	// 모든 스레드가 생성된 후 호출, 생성된 스레드는 작업 중...
@@ -119,6 +122,21 @@ void jnet::JNetCore::PrintLibraryInfoOnConsole()
 	cout << "TlsMemPool::Total Memory Free Count         : " << m_TlsMemPoolMgr.GetTotalFreeMemCnt() << endl;
 	cout << "TlsMemPool::Current Memory Allocated Count  : " << m_TlsMemPoolMgr.GetAllocatedMemUnitCnt() << endl;
 	cout << "TlsMemPool::Memory Malloc Count             : " << m_TlsMemPoolMgr.GetMallocCount() << endl;
+
+	std::cout << "----------------------------------------------------------" << std::endl;
+	std::cout << "[Accept] Total Accept Count     : " << GetTotalAcceptTransaction() << std::endl;
+	std::cout << "[Accept] Accept TPS             : " << GetAcceptTPS() << std::endl;
+	std::cout << "----------------------------------------------------------" << std::endl;
+	std::cout << "[Recv]   Total Recv Packet Size : " << GetTotalRecvTransaction() << std::endl;
+	std::cout << "[Recv]   Total Recv TPS         : " << GetRecvTPS() << std::endl;
+	std::cout << "----------------------------------------------------------" << std::endl;
+	std::cout << "[Send]   Total Send Packet Size : " << GetTotalSendTransaction() << std::endl;
+	std::cout << "[Send]   Total Send TPS         : " << GetSendTPS() << std::endl;
+	std::cout << "----------------------------------------------------------" << std::endl;
+	std::cout << "[Session] Session acceptance limit               : " << m_MaximumOfSessions << std::endl;
+	std::cout << "[Session] Current number of sessions             : " << GetSessionCount() << std::endl;
+	std::cout << "[Session] Number of Acceptances Available        : " << m_SessionIndexQueue.GetSize() << std::endl;
+	std::cout << "----------------------------------------------------------" << std::endl;
 }
 
 void jnet::JNetCore::Disconnect(SessionID64 sessionID64)
@@ -648,7 +666,6 @@ void jnet::JNetCore::Proc_SendCompletion(JNetSession* session)
 	}
 }
 
-#if defined(CALCULATE_TRANSACTION_PER_SECOND)
 UINT __stdcall jnet::JNetCore::CalcTpsThreadFunc(void* arg)
 {
 	JNetCore* jnetcore = reinterpret_cast<JNetCore*>(arg);
@@ -672,5 +689,4 @@ UINT __stdcall jnet::JNetCore::CalcTpsThreadFunc(void* arg)
 	}
 	return 0;
 }
-#endif
 

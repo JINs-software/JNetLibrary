@@ -8,13 +8,16 @@ jnet::JNetServer::JNetServer(
 	bool recvBufferingMode, 
 	uint16 maximumOfSessions, uint32 numOfIocpConcurrentThrd, uint16 numOfIocpWorkerThrd, 
 	size_t tlsMemPoolUnitCnt, size_t tlsMemPoolUnitCapacity, bool tlsMemPoolMultiReferenceMode, bool tlsMemPoolPlacementNewMode, 
-	uint32 memPoolBuffAllocSize, uint32 sessionRecvBuffSize)
+	uint32 memPoolBuffAllocSize, uint32 sessionRecvBuffSize,
+	bool calcTpsThread
+)
 	: m_MaximumOfConnections(maximumOfConnections), m_NumOfConnections(0),
 	m_PacketCode_LAN(packetCode_LAN), m_PacketCode(packetCode), m_PacketSymmetricKey(packetSymmetricKey), m_RecvBufferingMode(recvBufferingMode),
 	JNetCore(
 		maximumOfSessions, numOfIocpConcurrentThrd, numOfIocpWorkerThrd,
 		tlsMemPoolUnitCnt, tlsMemPoolUnitCapacity, tlsMemPoolMultiReferenceMode, tlsMemPoolPlacementNewMode,
-		memPoolBuffAllocSize, sessionRecvBuffSize
+		memPoolBuffAllocSize, sessionRecvBuffSize,
+		calcTpsThread
 	)
 {
 	m_ListenSock = CreateWindowSocket_IPv4(true);
@@ -180,9 +183,7 @@ void jnet::JNetServer::OnRecvCompletion(SessionID64 sessionID, JBuffer& recvRing
 				return;
 			}
 		}
-#if defined(CALCULATE_TRANSACTION_PER_SECOND)
-		IncrementRecvTransactions(true, totalRecvCnt);
-#endif
+		if(m_CalcTpsFlag) IncrementRecvTransactions(true, totalRecvCnt);
 		OnRecv(sessionID, jserialBuff);
 	}
 	else {
@@ -197,9 +198,7 @@ void jnet::JNetServer::OnRecvCompletion(SessionID64 sessionID, JBuffer& recvRing
 					break;
 				}
 				else {
-#if defined(CALCULATE_TRANSACTION_PER_SECOND)
-					IncrementRecvTransactions(true, 1);
-#endif
+					if (m_CalcTpsFlag) IncrementRecvTransactions(true, 1);
 
 					recvRingBuffer.DirectMoveDequeueOffset(sizeof(code) + sizeof(len));
 					JBuffer recvPacket = recvRingBuffer.SliceBuffer(len, true);
@@ -219,9 +218,7 @@ void jnet::JNetServer::OnRecvCompletion(SessionID64 sessionID, JBuffer& recvRing
 						return;
 					}
 					else {
-#if defined(CALCULATE_TRANSACTION_PER_SECOND)
-						IncrementRecvTransactions(true, 1);
-#endif
+						if (m_CalcTpsFlag) IncrementRecvTransactions(true, 1);
 
 						JBuffer recvPacket = recvRingBuffer.SliceBuffer(len, true);
 						OnRecv(sessionID, recvPacket);
@@ -235,10 +232,6 @@ void jnet::JNetServer::OnRecvCompletion(SessionID64 sessionID, JBuffer& recvRing
 			}
 		}
 	}
-
-//#if defined(CALCULATE_TRANSACTION_PER_SECOND)
-//	IncrementRecvTransactions(true, totalRecvPacketSize);
-//#endif
 
 	if (recvRingBuffer.GetUseSize() == 0) {
 		recvRingBuffer.ClearBuffer();
@@ -254,9 +247,7 @@ UINT __stdcall JNetServer::AcceptThreadFunc(void* arg) {
 		int addrLen = sizeof(clientAddr);
 		SOCKET clientSock = ::accept(server->m_ListenSock, (sockaddr*)&clientAddr, &addrLen);
 		if (clientSock != INVALID_SOCKET) {
-#if defined(CALCULATE_TRANSACTION_PER_SECOND)
-			server->IncrementAcceptTransactions();
-#endif
+			if (server->m_CalcTpsFlag) server->IncrementAcceptTransactions();
 
 			if (!server->OnConnectionRequest(clientAddr)) {
 				shutdown(clientSock, SD_BOTH);

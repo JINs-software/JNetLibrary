@@ -1,14 +1,10 @@
 #pragma once
 #include "CommStructs.h"
 #include "CommTypes.h"
-
 #include "WinSocketAPI.h"
-
 #define JBUFF_DIRPTR_MANUAL_RESET
 #include "JBuffer.h"
-
 #include "LockFreeQueue.h"
-
 #include "TlsMemPool.h"
 
 namespace jnet {
@@ -59,7 +55,8 @@ namespace jnet {
 			size_t tlsMemPoolUnitCnt, size_t tlsMemPoolUnitCapacity,
 			bool tlsMemPoolMultiReferenceMode, bool tlsMemPoolPlacementNewMode,
 			uint32 memPoolBuffAllocSize,
-			uint32 sessionRecvBuffSize
+			uint32 sessionRecvBuffSize,
+			bool calcTpsThread
 		);
 		~JNetCore();
 		
@@ -100,12 +97,14 @@ namespace jnet {
 		inline void AddRefSerialBuff(JBuffer* buff) {
 			m_TlsMemPoolMgr.GetTlsMemPool().IncrementRefCnt(buff, 1);
 		}
+
 	public:
 		inline int64 GetCurrentAllocatedMemUnitCnt() {
 			return m_TlsMemPoolMgr.GetAllocatedMemUnitCnt();;
 		}
-
-		
+		inline int GetSessionCount() {
+			return m_MaximumOfSessions - m_SessionIndexQueue.GetSize();
+		}
 
 	protected:
 		/////////////////////////////////////////////////////////////////
@@ -169,7 +168,9 @@ namespace jnet {
 		void Proc_RecvCompletion(JNetSession* session, DWORD transferred);
 		void Proc_SendCompletion(JNetSession* session);
 
-#if defined(CALCULATE_TRANSACTION_PER_SECOND)
+protected:
+	bool					m_CalcTpsFlag;
+
 private:
 	static const int NUM_OF_TPS_ITEM = 4;
 	static enum enTransaction {
@@ -181,9 +182,9 @@ private:
 
 	HANDLE					m_CalcTpsThread;
 	static UINT	__stdcall	CalcTpsThreadFunc(void* arg);
-	UINT				m_Transactions[NUM_OF_TPS_ITEM];
-	UINT				m_TransactionsPerSecond[NUM_OF_TPS_ITEM];
-	UINT64				m_TotalTransaction[NUM_OF_TPS_ITEM];
+	UINT					m_Transactions[NUM_OF_TPS_ITEM];
+	UINT					m_TransactionsPerSecond[NUM_OF_TPS_ITEM];
+	UINT64					m_TotalTransaction[NUM_OF_TPS_ITEM];
 	
 public:
 	inline UINT GetAcceptTPS() {return GetTransactionsPerSecond(ACCEPT_TRANSACTION);}
@@ -209,7 +210,6 @@ private:
 	}
 	inline LONG GetTransactionsPerSecond(BYTE type) {return m_TransactionsPerSecond[type];}
 	inline UINT64 GetTotalTransactions(BYTE type) {return m_TotalTransaction[type];}
-#endif
 	};
 
 
@@ -318,7 +318,8 @@ private:
 			size_t tlsMemPoolUnitCnt, size_t tlsMemPoolUnitCapacity,
 			bool tlsMemPoolMultiReferenceMode, bool tlsMemPoolPlacementNewMode,
 			uint32 memPoolBuffAllocSize,
-			uint32 sessionRecvBuffSize
+			uint32 sessionRecvBuffSize,
+			bool calcTpsThread
 		);
 		bool Start();
 		void Stop();
@@ -412,7 +413,8 @@ private:
 			size_t tlsMemPoolUnitCnt, size_t tlsMemPoolUnitCapacity,
 			bool tlsMemPoolMultiReferenceMode, bool tlsMemPoolPlacementNewMode,
 			uint32 memPoolBuffAllocSize,
-			uint32 sessionRecvBuffSize
+			uint32 sessionRecvBuffSize,
+			bool calcTpsThread
 		)
 			: JNetCore(
 				1,
@@ -420,7 +422,8 @@ private:
 				tlsMemPoolUnitCnt, tlsMemPoolUnitCapacity,
 				tlsMemPoolMultiReferenceMode, tlsMemPoolPlacementNewMode,
 				memPoolBuffAllocSize,
-				sessionRecvBuffSize
+				sessionRecvBuffSize,
+				calcTpsThread
 			),
 			m_ServerSessionID64(0),
 			m_ServerIP(serverIP), m_ServerPort(serverPort),
@@ -491,7 +494,8 @@ private:
 				size_t tlsMemPoolUnitCnt, size_t tlsMemPoolUnitCapacity,
 				bool tlsMemPoolMultiReferenceMode, bool tlsMemPoolPlacementNewMode,
 				uint32 memPoolBuffAllocSize,
-				uint32 sessionRecvBuffSize
+				uint32 sessionRecvBuffSize,
+				bool calcTpsThread
 			) : JNetServer(
 				serverIP, serverPort, maximumOfSessions,
 				packetCode_LAN, packetCode, packetSymmetricKey,
@@ -501,7 +505,8 @@ private:
 				tlsMemPoolUnitCnt, tlsMemPoolUnitCapacity,
 				tlsMemPoolMultiReferenceMode, tlsMemPoolPlacementNewMode,
 				memPoolBuffAllocSize,
-				sessionRecvBuffSize
+				sessionRecvBuffSize,
+				calcTpsThread
 			)
 			{
 				InitializeSRWLock(&m_SessionGroupMapSrwLock);
@@ -535,6 +540,7 @@ private:
 		private:
 			GroupID							m_GroupID;
 			bool							m_PriorBoost;
+			bool							m_CalcFps;
 
 			HANDLE							m_GroupThreadHnd;
 			bool							m_GroupThreadStop;
@@ -550,22 +556,19 @@ private:
 				enSessionMessage,
 				enGroupMessage,
 			};
-			LockFreeQueue<GroupTheradMessage>					m_LockFreeMessageQueue;
+			LockFreeQueue<GroupTheradMessage>	m_LockFreeMessageQueue;
 
-#if defined(CALCULATE_TRANSACTION_PER_SECOND)
 		private:
-			int								m_GroupThreadProcFPS;
+			int									m_GroupThreadProcFPS;
 		public:
-			inline int GetGroupThreadLoopFPS() {
-				return m_GroupThreadProcFPS;
-			}
-#endif
+			inline int GetGroupThreadLoopFPS() { return m_GroupThreadProcFPS; }
 
 		public:
-			inline void Init(JNetGroupServer* server, GroupID groupID, bool threadPriorBoost = false) {
+			inline void Init(JNetGroupServer* server, GroupID groupID, bool threadPriorBoost = false, bool calcFps = false) {
 				m_Server = server;
 				m_GroupID = groupID;
 				m_PriorBoost = threadPriorBoost;
+				m_CalcFps = calcFps;
 			}
 			inline bool Start() {
 				m_GroupThreadStop = false;
@@ -592,57 +595,24 @@ private:
 		protected:
 			GroupID GetGroupID() { return m_GroupID; }
 
-			inline void Disconnect(SessionID64 sessionID) {
-				m_Server->Disconnect(sessionID);
-			}
-			inline bool SendPacket(SessionID64 sessionID, JBuffer* sendPktPtr, bool postToWorker = false, bool encoded = false) {
-				return m_Server->SendPacket(sessionID, sendPktPtr, postToWorker, encoded);
-			}
-			inline bool SendPacketBlocking(SessionID64 sessionID, JBuffer* sendPktPtr, bool encoded = false) {
-				return m_Server->SendPacketBlocking(sessionID, sendPktPtr, encoded);
-			}
-			inline bool BufferSendPacket(SessionID64 sessionID, JBuffer* sendPktPtr, bool encoded = false) {
-				return m_Server->BufferSendPacket(sessionID, sendPktPtr, encoded);
-			}
-			inline bool SendBufferedPacket(SessionID64 sessionID, bool postToWorker = false) {
-				return m_Server->SendBufferedPacket(sessionID, postToWorker);
-			}
+			inline void Disconnect(SessionID64 sessionID) { m_Server->Disconnect(sessionID); }
+			inline bool SendPacket(SessionID64 sessionID, JBuffer* sendPktPtr, bool postToWorker = false, bool encoded = false) { return m_Server->SendPacket(sessionID, sendPktPtr, postToWorker, encoded); }
+			inline bool SendPacketBlocking(SessionID64 sessionID, JBuffer* sendPktPtr, bool encoded = false) { return m_Server->SendPacketBlocking(sessionID, sendPktPtr, encoded); }
+			inline bool BufferSendPacket(SessionID64 sessionID, JBuffer* sendPktPtr, bool encoded = false) { return m_Server->BufferSendPacket(sessionID, sendPktPtr, encoded); }
+			inline bool SendBufferedPacket(SessionID64 sessionID, bool postToWorker = false) { return m_Server->SendBufferedPacket(sessionID, postToWorker); }
 
-			inline void CreateGroup(GroupID newGroupID, JNetGroupThread* groupThread, bool threadPriorBoost = false) {
-				m_Server->CreateGroup(newGroupID, groupThread, threadPriorBoost);
-			}
-			inline void DeleteGroup(GroupID delGroupID) {
-				m_Server->DeleteGroup(delGroupID);
-			}
-			//inline void EnterSessionGroup(SessionID64 sessionID, GroupID enterGroup) {
-			//	m_Server->EnterSessionGroup(sessionID, enterGroup);
-			//}
-			inline void ForwardSessionToGroup(SessionID64 sessionID, GroupID destGroup) {
-				m_Server->ForwardSessionGroup(sessionID, m_GroupID, destGroup);
-			}
-			inline void ForwardSessionMessage(SessionID64 sessionID, JBuffer* msg) {
-				m_Server->ForwardMessage(sessionID, msg);
-			}
-			inline void SendGroupMessage(GroupID groupID, JBuffer* msg) {
-				m_Server->SendGroupMessage(m_GroupID, groupID, msg);
-			}
+			inline void CreateGroup(GroupID newGroupID, JNetGroupThread* groupThread, bool threadPriorBoost = false) { m_Server->CreateGroup(newGroupID, groupThread, threadPriorBoost); }
+			inline void DeleteGroup(GroupID delGroupID) { m_Server->DeleteGroup(delGroupID); }
+			inline void ForwardSessionToGroup(SessionID64 sessionID, GroupID destGroup) { m_Server->ForwardSessionGroup(sessionID, m_GroupID, destGroup); }
+			inline void ForwardSessionMessage(SessionID64 sessionID, JBuffer* msg) { m_Server->ForwardMessage(sessionID, msg); }
+			inline void SendGroupMessage(GroupID groupID, JBuffer* msg) { m_Server->SendGroupMessage(m_GroupID, groupID, msg); }
 
-			inline DWORD AllocTlsMemPool() {
-				return m_Server->AllocTlsMemPool();
-			}
-			// TLS 메모리 풀 직렬화 버퍼 할당 및 반환 그리고 참조 카운트 증가 함수
-			inline JBuffer* AllocSerialBuff() {
-				return m_Server->AllocSerialBuff();
-			}
-			inline JBuffer* AllocSerialSendBuff(uint16 len, bool LAN = false) {
-				return m_Server->AllocSerialSendBuff(len, LAN);
-			}
-			inline void FreeSerialBuff(JBuffer* buff) {
-				m_Server->FreeSerialBuff(buff);
-			}
-			inline void AddRefSerialBuff(JBuffer* buff) {
-				m_Server->AddRefSerialBuff(buff);
-			}
+			inline DWORD AllocTlsMemPool() { return m_Server->AllocTlsMemPool(); }
+	
+			inline JBuffer* AllocSerialBuff() { return m_Server->AllocSerialBuff(); }
+			inline JBuffer* AllocSerialSendBuff(uint16 len, bool LAN = false) { return m_Server->AllocSerialSendBuff(len, LAN); }
+			inline void FreeSerialBuff(JBuffer* buff) { m_Server->FreeSerialBuff(buff); }
+			inline void AddRefSerialBuff(JBuffer* buff) { m_Server->AddRefSerialBuff(buff); }
 
 		protected:
 			virtual void OnStart() {};

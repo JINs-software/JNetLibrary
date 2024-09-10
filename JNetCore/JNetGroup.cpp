@@ -129,23 +129,25 @@ UINT __stdcall JNetGroupThread::SessionGroupThreadFunc(void* arg) {
 
 	groupthread->OnStart();
 
-#if defined(CALCULATE_TRANSACTION_PER_SECOND)
-	groupthread->m_GroupThreadProcFPS = 0;
-	int threadLoopCnt = 0;
-	clock_t timestamp = clock();
-#endif
+	clock_t timestamp;
+	int threadLoopCnt;
+	if (groupthread->m_CalcFps) {
+		groupthread->m_GroupThreadProcFPS = 0;
+		threadLoopCnt = 0;
+		timestamp = clock();
+	}
 
 	while (!groupthread->m_GroupThreadStop) {
-#if defined(CALCULATE_TRANSACTION_PER_SECOND)
-		threadLoopCnt++;
-		clock_t now = clock();
-		clock_t interval = now - timestamp;
-		if (interval >= CLOCKS_PER_SEC) {
-			groupthread->m_GroupThreadProcFPS = threadLoopCnt / (interval / CLOCKS_PER_SEC);
-			threadLoopCnt = 0;
-			timestamp = now;
+		if (groupthread->m_CalcFps) {
+			threadLoopCnt++;
+			clock_t now = clock();
+			clock_t interval = now - timestamp;
+			if (interval >= CLOCKS_PER_SEC) {
+				groupthread->m_GroupThreadProcFPS = threadLoopCnt / (interval / CLOCKS_PER_SEC);
+				threadLoopCnt = 0;
+				timestamp = now;
+			}
 		}
-#endif
 
 		GroupTheradMessage message;
 		if (groupthread->m_LockFreeMessageQueue.GetSize() > 0) {		// 싱글 그룹 스레드에서의 디큐잉이 보장됨
