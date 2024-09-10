@@ -98,7 +98,7 @@ void JNetCore::Stop()
 	static bool stopped = false;
 
 	if (!stopped) {
-		TerminateThread(m_CalcTpsThread, 0);
+		if (m_CalcTpsFlag) { TerminateThread(m_CalcTpsThread, 0); }
 
 		// IOCP 작업자 스레드가 스스로 작업 함수에서 반환하도록 종료 메시지를 IOCP 큐에 post
 		for (uint16 i = 0; i < m_NumOfIocpWorkerThrd; i++) {
@@ -543,7 +543,8 @@ UINT __stdcall JNetCore::WorkerThreadFunc(void* arg)
 			}
 		}
 		else {
-			DebugBreak();
+			//DebugBreak();
+			// => Stop 호출 시 PostQueuedCompletionStatus(m_IOCP, 0, 0, NULL); 를 통해 종료
 			break;
 		}
 	}
