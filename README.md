@@ -1,10 +1,11 @@
 ### \[개요\]
-IOCP 모델을 적용한 네트워크 코어 라이브러리이다. 내부에서 자체적으로
-세션 연결을 관리하고, IOCP 작업자 스레드를 통해 클라이언트와 비동기
-패킷 송수신을 수행한다. 세션과의 연결 확립/종료, 송수신의 결과를
-이벤트 함수(가상 함수)를 통해 알리며, 게임 서버 구현 시 이 이벤트
-함수를 재정의하여 클라이언트 연결 및 종료를 관리하고, 수신된 패킷을
-처리하며, 컨텐츠 패킷을 송신한다.
+IOCP 모델을 적용한 네트워크 코어 라이브러리이다. 내부에서 자체적으로 세션 연결을 관리하고, IOCP 작업자 스레드를 통해 클라이언트와 비동기 패킷 송수신을 수행한다. 
+세션과의 연결 확립/종료, 송수신의 결과를 이벤트 함수(가상 함수)를 통해 알리며, 게임 서버 구현 시 이 이벤트 함수를 재정의하여 클라이언트 연결 및 종료를 관리하고, 
+수신된 패킷을 처리하며, 컨텐츠 패킷을 송신한다.
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/f2761a6f-32c9-4721-8ebe-f89883711651" width="800">
+</p>
 
 #### (Refactoring CLanServer)
 https://github.com/JINs-software/CLanLibrary
@@ -12,21 +13,72 @@ https://github.com/JINs-software/CLanLibrary
 JNetLibrary는 기존 네트워크 코어 라이브러리인 'CLanLibrary'를 개량한 라이브러리이다.
 리포지토리의 LoginServer, ChattingServer, EchoGameServer는 CLanLibrary를 상속하여 만든 프로젝트이며, 현재 JNetLibrary을 활용한 서버 프로젝트는 EchoGameServer_withJNet과 MarchOfWind(MOW, 스타크래프트 유즈맵 게임인 '신전 뿌수기' 류의 게임 모작)이 있다. 추후 채팅 서버와 로그인 서버도 JNetLibrary를 활용한 버전으로 변경 예정
 
+(구 버전 프로젝트, 성능 및 기능 7일 테스트 통과)
+
 - Login Server: https://github.com/JINs-software/LoginServer
-- Chatting Server: https://github.com/JINs-software/ChattingServer/tree/master 
+- Chatting Server: https://github.com/JINs-software/ChattingServer
 - EchoGame Server: https://github.com/JINs-software/EchoGameServer
-- EchoGame Server_withJNet: https://github.com/JINs-software/EchoGameServer_JNet
+
+(JNetLibrary 프로젝트)
+
+- Login Server: https://github.com/JINs-software/LoginServer_JNet
+- Chatting Server: https://github.com/JINs-software/ChattingServer_JNet
+- EchoGame Server: https://github.com/JINs-software/EchoGameServer_JNet
 - MarchOfWind Server: https://github.com/JINs-software/MarchOfWindServer
 
 #### Class Diagram
 ![image](https://github.com/user-attachments/assets/d696e76b-669e-496c-a2bf-0c4978ba4d0e)
 
-### \[기술 스택\]
--   C++
--   Window IOCP, socket programming
--   Window multi-thread programming
+---
 
-### \[코어 라이브러리와 주요 멤버\]
+### \[기술 스택\]
+- C++
+- Winodws Socket Programming
+- Windows Syncronization Objects
+- Windows OVERLAPPED I/O
+- IOCP
+
+---
+
+### \[라이브러리 클래스 구조\]
+
+### JNetCore, JNetServer
+* JNetCore: 클라이언트 TCP 세션 관리, IOCP 작업자 스레드 관리
+  
+* JNetServer: JNetCore의 구체 클래스, Listen socket을 통해 클라이언트의 연결 요청에 대한 accept를 수행하는 accept 스레드 관리
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/03d941b4-749c-43f7-bd6b-e58d654f819c" width="800">
+</p>
+
+### JNetGroupServer, JNetGroupThread
+* JNetGroupServer
+    * JNetServer의 구체 클래스
+    * 내부의 맵핑 자료구조를 통해 클라이언트 세션을 싱글 스레드 구조의 ‘그룹’에 맵핑. 해당 스레드(그룹)는 연결된 클라이언트와 독립적으로 연결되어 있는 추상화를 제공받음.
+
+* JNetGroupThread
+    * 그룹에 속한 세션들의 수신 패킷을 담는 락-프리 큐 존재
+    * 싱글 업데이트 스레드가 존재하여, 수신 패킷의 락-프리 큐에서 패킷을 획득하고 OnMessage 가상 함수를 호출하여 컨텐츠 코드가 수행되도록 함
+    * 로비 그룹, 배틀 필드 그룹은 JNetGroupThread를 상속 받은 그룹 클래스이며, OnEnterClient에 클라이언트 접속 로직을 처리, OnMessage에 수신 패킷 처리
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/7f867f1d-4d72-4230-8139-f4735f8a9c5e" width="800">
+</p>
+
+### 이 외
+
+* **JNetClient**
+    * 기본적인 클라이언트 기능을 제공받을 수 있는 클래스
+    * ex) 모니터링 서버(JNetServer 구체 클래스) <-> 로그인/채팅/에코 서버 모니터링 클라이언트(JNetClient 구체 클래스)
+      
+* **JNetOdbcServer**
+    * JNetServer 구체 클래스
+    * MS의 DBMS 독립적 애플리케이션 구현에 사용되는 ODBC API를 활용
+    * ODBC를 통한 DB 연결 및 쿼리 요창, 응답 확인 등의 기능을 제공하는 JNetDBConn에 대한 풀을 멤버로 가짐
+    * 컨텐츠 코드에 DB 연결 추상화를 제공
+
+---
+
+### \[라이브러리 클래스 주요 멤버\]
 
 ### *1.  JNetCore: JNetLibrary 최상위 부모 클래스*
 
