@@ -17,7 +17,7 @@ JNetLibrary는 기존 네트워크 코어 라이브러리인 'CLanLibrary'를 �
 
 - Login Server: https://github.com/JINs-software/LoginServer
 - Chatting Server: https://github.com/JINs-software/ChattingServer
-- EchoGame Server: https://github.com/JINs-software/EchoGameServer
+- ~~EchoGame Server: https://github.com/JINs-software/EchoGameServer~~
 
 (JNetLibrary 프로젝트)
 
