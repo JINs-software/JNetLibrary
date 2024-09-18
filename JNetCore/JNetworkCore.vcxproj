@@ -95,7 +95,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(SolutionDir)\include;$(IncludePath)</IncludePath>
-    <ExternalIncludePath>$(SolutionDir)..\RingBufferLibrary\include;$(SolutionDir)..\MemoryPool\include;$(SolutionDir)..\LockFree\include</ExternalIncludePath>
+    <ExternalIncludePath>$(SolutionDir)..\JBuffer\include;$(SolutionDir)..\TlsMemoryPool\include;$(SolutionDir)..\LockFree\include</ExternalIncludePath>
     <OutDir>$(SolutionDir)\lib\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
