@@ -31,6 +31,7 @@
     <ClCompile Include="JNetDB.cpp" />
     <ClCompile Include="JNetEncryption.cpp" />
     <ClCompile Include="JNetGroup.cpp" />
+    <ClCompile Include="JNetOdbcServer.cpp" />
     <ClCompile Include="JNetServer.cpp" />
     <ClCompile Include="JNetSession.cpp" />
     <ClCompile Include="WinSocketAPI.cpp" />

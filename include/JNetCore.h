@@ -6,6 +6,7 @@
 #include "JBuffer.h"
 #include "LockFreeQueue.h"
 #include "TlsMemPool.h"
+#include "JNetDB.h"
 
 namespace jnet {
 
@@ -293,20 +294,20 @@ private:
 		SOCKADDR_IN					m_ListenSockAddr;
 		SOCKET						m_ListenSock;
 
-
 		uint16						m_MaximumOfConnections;
 		uint16						m_NumOfConnections;
 
 		HANDLE						m_AcceptThreadHnd;
 
+		bool						m_RecvBufferingMode;
+
+	protected:
 		using PACKET_CODE = BYTE;
 		using PACKET_SYMM_KEY = BYTE;
 		using PACKET_LEN = uint16;
 		BYTE						m_PacketCode_LAN;
 		BYTE						m_PacketCode;
 		BYTE						m_PacketSymmetricKey;
-
-		bool						m_RecvBufferingMode;
 
 	public:
 		JNetServer(
@@ -389,6 +390,83 @@ private:
 		static UINT __stdcall AcceptThreadFunc(void* arg);
 	};
 
+	/********************************************************************
+	* JNetOdbcServer
+	********************************************************************/
+	class JNetOdbcServer : public JNetServer
+	{
+	private:
+		int32				m_DBConnCnt;
+		const WCHAR*		m_OdbcConnStr;
+		JNetDBConnPool*		m_DBConnPool;
+		bool				m_DBConnFlag;
+
+	public:
+		JNetOdbcServer(
+			int32 dbConnCnt, const WCHAR* odbcConnStr,
+			const char* serverIP, uint16 serverPort, uint16 maximumOfConnections,
+			PACKET_CODE packetCode_LAN, PACKET_CODE packetCode, PACKET_SYMM_KEY packetSymmetricKey,
+			bool recvBufferingMode,
+			uint16 maximumOfSessions,
+			uint32 numOfIocpConcurrentThrd, uint16 numOfIocpWorkerThrd,
+			size_t tlsMemPoolUnitCnt, size_t tlsMemPoolUnitCapacity,
+			bool tlsMemPoolMultiReferenceMode, bool tlsMemPoolPlacementNewMode,
+			uint32 memPoolBuffAllocSize,
+			uint32 sessionRecvBuffSize,
+			bool calcTpsThread
+		) : JNetServer(serverIP, serverPort, maximumOfConnections,
+			packetCode_LAN, packetCode, packetSymmetricKey,
+			recvBufferingMode, 
+			maximumOfSessions,
+			numOfIocpConcurrentThrd, numOfIocpWorkerThrd,
+			tlsMemPoolUnitCnt, tlsMemPoolUnitCapacity,
+			tlsMemPoolMultiReferenceMode, tlsMemPoolPlacementNewMode,
+			memPoolBuffAllocSize,
+			sessionRecvBuffSize,
+			calcTpsThread
+			),
+			m_DBConnCnt(dbConnCnt), m_OdbcConnStr(odbcConnStr), m_DBConnFlag(false)
+		{}
+
+		bool Start();
+		void Stop();
+
+	protected:
+		inline JNetDBConn* HoldDBConnection() { return m_DBConnPool->Pop(); }
+		inline void FreeDBConnection(JNetDBConn* dbConn, bool isDisconnected = false, bool tryToConnect = false) {
+			m_DBConnPool->Push(dbConn, isDisconnected, tryToConnect, m_OdbcConnStr);
+		}
+
+		bool BindParameter(JNetDBConn* dbConn, INT32 paramIndex, bool* value);
+		bool BindParameter(JNetDBConn* dbConn, INT32 paramIndex, float* value);
+		bool BindParameter(JNetDBConn* dbConn, INT32 paramIndex, double* value);
+		bool BindParameter(JNetDBConn* dbConn, INT32 paramIndex, INT8* value);
+		bool BindParameter(JNetDBConn* dbConn, INT32 paramIndex, INT16* value);
+		bool BindParameter(JNetDBConn* dbConn, INT32 paramIndex, INT32* value);
+		bool BindParameter(JNetDBConn* dbConn, INT32 paramIndex, INT64* value);
+		bool BindParameter(JNetDBConn* dbConn, INT32 paramIndex, TIMESTAMP_STRUCT* value);
+		bool BindParameter(JNetDBConn* dbConn, INT32 paramIndex, const WCHAR* str);
+		bool BindParameter(JNetDBConn* dbConn, INT32 paramIndex, const BYTE* bin, INT32 size);
+		bool BindColumn(JNetDBConn* dbConn, INT32 columnIndex, bool* value);
+		bool BindColumn(JNetDBConn* dbConn, INT32 columnIndex, float* value);
+		bool BindColumn(JNetDBConn* dbConn, INT32 columnIndex, double* value);
+		bool BindColumn(JNetDBConn* dbConn, INT32 columnIndex, INT8* value);
+		bool BindColumn(JNetDBConn* dbConn, INT32 columnIndex, INT16* value);
+		bool BindColumn(JNetDBConn* dbConn, INT32 columnIndex, INT32* value);
+		bool BindColumn(JNetDBConn* dbConn, INT32 columnIndex, INT64* value);
+		bool BindColumn(JNetDBConn* dbConn, INT32 columnIndex, TIMESTAMP_STRUCT* value);
+		bool BindColumn(JNetDBConn* dbConn, INT32 columnIndex, WCHAR* str, INT32 size, SQLLEN* index);
+		bool BindColumn(JNetDBConn* dbConn, INT32 columnIndex, BYTE* bin, INT32 size, SQLLEN* index);
+
+		bool BindParameter(JNetDBConn* dbConn, SQLPOINTER dataPtr, SQLUSMALLINT paramIndex, SQLULEN len, SQLSMALLINT cType, SQLSMALLINT sqlType);
+		bool BindColumn(JNetDBConn* dbConn, SQLPOINTER outValue, SQLUSMALLINT columnIndex, SQLULEN len, SQLSMALLINT cType);
+
+		void UnBind(JNetDBConn* dbConn);
+
+		bool ExecQuery(JNetDBConn* dbConn, const wchar_t* query);
+		bool FetchQuery(JNetDBConn* dbConn);
+		INT32 GetRowCount(JNetDBConn* dbConn);
+	};
 
 	/********************************************************************
 	* JNetClient

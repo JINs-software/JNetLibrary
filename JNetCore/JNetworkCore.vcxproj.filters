@@ -16,5 +16,6 @@
     <ClCompile Include="JNetEncryption.cpp" />
     <ClCompile Include="JNetGroup.cpp" />
     <ClCompile Include="JNetClient.cpp" />
+    <ClCompile Include="JNetOdbcServer.cpp" />
   </ItemGroup>
 </Project>
