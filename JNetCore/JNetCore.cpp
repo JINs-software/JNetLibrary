@@ -109,14 +109,6 @@ void JNetCore::Stop()
 	}
 }
 
-/**
-* @details
-* 재정의를 통해 생성과 동시에 중지 상태인 IOCP 작업자 스레드의 핸들 인수를 통해 필요한 초기화 작업을 수행할 수 있다.
-* JNetCore에 설정된 IOCP 작업자 스레드 생성 갯수와 별개로 수행되는 작업자 스레드 갯수를 제어할 수 있다.
-* true 반환 시 중지된 작업자 스레드의 수행이 시작되고, false 반환 시 스레드는 강제 종료된다.
-*/
-bool JNetCore::OnWorkerThreadCreate(HANDLE thHnd) { return true; }
-
 void jnet::JNetCore::PrintLibraryInfoOnConsole()
 {
 	cout << "======================== JNetCore ========================" << endl;
@@ -239,6 +231,43 @@ bool JNetCore::SendBufferedPacket(SessionID64 sessionID, bool postToWorker)
 	return ret;
 }
 
+
+/**
+* @details
+* 재정의를 통해 생성과 동시에 중지 상태인 IOCP 작업자 스레드의 핸들 인수를 통해 필요한 초기화 작업을 수행할 수 있다.	\n
+* JNetCore에 설정된 IOCP 작업자 스레드 생성 갯수와 별개로 수행되는 작업자 스레드 갯수를 제어할 수 있다.					\n
+* true 반환 시 중지된 작업자 스레드의 수행이 시작되고, false 반환 시 스레드는 강제 종료된다.
+*/
+bool JNetCore::OnWorkerThreadCreate(HANDLE thHnd) { return true; }
+
+void JNetCore::OnAllWorkerThreadCreate() {}
+
+/**
+* @details
+* IOCP 작업자 스레드 개별 수행 흐름의 초입에 호출되는 함수로 GetQueuedCompletionStatus 함수가 포함된 작업 루프 이전에 호출된다.
+* 주로 JNetCore 단에서 관리되는 TLS 기반의 메모리 풀을 할당받고, 초기화하는 작업을 수행한다.
+*/
+void JNetCore::OnWorkerThreadStart() {}
+
+void JNetCore::OnWorkerThreadEnd() { std::cout << "IOCP Worker Thread Exits.."; }
+
+/**
+* @details
+* 관리되는 세션이 제거된 후 호출되는 함수이다. 호출 시점에서 sessionID는 이미 제거된 세션 ID이며, 유효하지 않다.
+* 콘텐츠 서버와 같은 하위 클래스에서 sessionID를 기반으로 한 데이터를 해당 함수 재정의에서 제거하는 등 정리 작업을 수행할 수 있다.
+*/
+void JNetCore::OnSessionLeave(SessionID64 sessionID) {}
+
+void JNetCore::OnError() {};
+
+/**
+* @details
+* 특정 세션에 대한 접근에 있어 thread-safe를 보장할 수 없다. 따라서 주로 컨텐츠 코드에서 호출되는 SendPacket 계열의 요청 함수에서는 세션 독점 점유가 필요하다.	\n
+* AcquireSession 함수는 독점적인 점유를 보장한다. 독점적인 점유에 성공한다면 해당 세션 객체의 포인터를 반환하며, 실패 시 nullptr을 반환한다.	\n
+* 하위 클래스에 이벤트 함수 등으로 전달되는 세션 아이디(uin64)는 64비트열을 하나의 정수로 전달하는 간단한 추상화이며, 
+* JNetCore 단에서는 16비트의 인덱스 번호와 48비트의 증분 값으로 관리된다.	\n
+* 세션 객체의 참조 카운트와 단일 플래그로 구성된 참조 구조체 멤버를 원자적 연산으로 제어하여 세션 객체에 대한 동기화를 내부적으로 수행한다.
+*/
 JNetCore::JNetSession* JNetCore::AcquireSession(SessionID64 sessionID)
 {
 	uint16 idx = (uint16)sessionID;
@@ -424,6 +453,38 @@ JNetCore::JNetSession* JNetCore::CreateNewSession(SOCKET sock)
 	return newSession;
 }
 
+bool JNetCore::RegistSessionToIOCP(JNetSession* session)
+{
+	bool ret = true;
+	if (CreateIoCompletionPort((HANDLE)session->m_Sock, m_IOCP, (ULONG_PTR)session, 0) == NULL) {
+#if defined(ASSERT)
+		DebugBreak();
+#else
+		ret = false;
+#endif
+	}
+	else {
+		// IOCP 등록 성공 시 초기 수신 대기 설정
+		// WSARecv 
+		WSABUF wsabuf;
+		wsabuf.buf = reinterpret_cast<char*>(session->m_RecvRingBuffer.GetEnqueueBufferPtr());
+		wsabuf.len = session->m_RecvRingBuffer.GetFreeSize();
+
+		DWORD dwFlag = 0;
+		//newSession->ioCnt = 1;
+		// => 세션 Release 관련 수업(24.04.08) 참고
+		// 세션 Init 함수에서 IOCnt를 1로 초기화하는 것이 맞는듯..
+		if (WSARecv(session->m_Sock, &wsabuf, 1, NULL, &dwFlag, &session->m_RecvOverlapped, NULL) == SOCKET_ERROR) {
+			int errcode = WSAGetLastError();
+			if (errcode != WSA_IO_PENDING) {
+				ret = false;
+			}
+		}
+	}
+
+	return ret;
+}
+
 bool JNetCore::DeleteSession(SessionID64 sessionID)
 {
 	bool ret = false;
@@ -455,38 +516,6 @@ bool JNetCore::DeleteSession(SessionID64 sessionID)
 
 		// 세션 ID 인덱스 반환
 		m_SessionIndexQueue.Enqueue(allocatedIdx);
-	}
-
-	return ret;
-}
-
-bool jnet::JNetCore::RegistSessionToIOCP(JNetSession* session)
-{
-	bool ret = true;
-	if (CreateIoCompletionPort((HANDLE)session->m_Sock, m_IOCP, (ULONG_PTR)session, 0) == NULL) {
-#if defined(ASSERT)
-		DebugBreak();
-#else
-		ret = false;
-#endif
-	}
-	else {
-		// IOCP 등록 성공 시 초기 수신 대기 설정
-		// WSARecv 
-		WSABUF wsabuf;
-		wsabuf.buf = reinterpret_cast<char*>(session->m_RecvRingBuffer.GetEnqueueBufferPtr());
-		wsabuf.len = session->m_RecvRingBuffer.GetFreeSize();
-		
-		DWORD dwFlag = 0;
-		//newSession->ioCnt = 1;
-		// => 세션 Release 관련 수업(24.04.08) 참고
-		// 세션 Init 함수에서 IOCnt를 1로 초기화하는 것이 맞는듯..
-		if (WSARecv(session->m_Sock, &wsabuf, 1, NULL, &dwFlag, &session->m_RecvOverlapped, NULL) == SOCKET_ERROR) {
-			int errcode = WSAGetLastError();
-			if (errcode != WSA_IO_PENDING) {
-				ret = false;
-			}
-		}
 	}
 
 	return ret;

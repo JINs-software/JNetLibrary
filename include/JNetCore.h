@@ -78,9 +78,27 @@ namespace jnet {
 		void PrintLibraryInfoOnConsole();
 
 	protected:
+		/**
+		* @brief 하위 클래스에서 세션 객체 생성 요청을 위해 호출하는 함수
+		* 
+		* @param 세션과 대응되는 유효한 소켓 핸들
+		* @return 새로 생성 및 초기화된 세션 객체의 포인터
+		*/
 		JNetSession* CreateNewSession(SOCKET sock);
-		bool DeleteSession(SessionID64 sessionID);
+		/**
+		* @brief 하위 클래스에서 세션 객체를 IOCP 등록을 위해 호출하는 함수
+		*
+		* @param 등록하고자 하는 세션 객체 포인터
+		* @return 등록 성공 여부
+		*/
 		bool RegistSessionToIOCP(JNetSession* session);
+		/**
+		* @brief 세션 제거 요청 함수
+		*
+		* @param 제거하고자하는 세션 아이디
+		* @return true 반환 시 세션 제거, false 반환 시 이미 제거되었거나 제거 로직이 다른 스레드를 통해 수행중인 상황을 암시
+		*/
+		bool DeleteSession(SessionID64 sessionID);
 
 		void Disconnect(SessionID64 sessionID);
 		bool SendPacket(SessionID64 sessionID, JBuffer* sendPktPtr, bool postToWorker = false);
@@ -126,20 +144,17 @@ namespace jnet {
 		/**
 		* @brief Start() 함수 내 요청된 수 만큼 IOCP 작업자 스레드를 생성한 후 함수를 빠져나오기 전 호출되는 이벤트 함수
 		*/
-		virtual void OnAllWorkerThreadCreate() {}
+		virtual void OnAllWorkerThreadCreate();
 
 		/**
 		* @brief 개별 IOCP 작업자 스레드의 수행 흐름 초입부(WorkerThreadFunc 함수 초입부)에 호출되는 이벤트 함수, 개별 작업자 스레드의 초기화를 독립적으로 수행하도록 재정의 가능
-		* @details
-		* IOCP 작업자 스레드 개별 수행 흐름의 초입에 호출되는 함수로 GetQueuedCompletionStatus 함수가 포함된 작업 루프 이전에 호출된다.
-		* 주로 JNetCore 단에서 관리되는 TLS 기반의 메모리 풀을 할당받고, 초기화하는 작업을 수행한다.
 		*/
-		virtual void OnWorkerThreadStart() {}
+		virtual void OnWorkerThreadStart();
 
 		/**
 		* @brief 개별 IOCP 작업자 스레드가 종료(작업자 함수 return) 전 호출되는 이벤트 함수
 		*/
-		virtual void OnWorkerThreadEnd() { std::cout << "IOCP Worker Thread Exits.."; }
+		virtual void OnWorkerThreadEnd();
 
 		/**
 		* @brief IOCP 작업자 스레드의 수신 완료 시 대상 세션의 수신 버퍼의 enqueue 오프셋 제어 후 호출되는 이벤트 함수
@@ -156,30 +171,49 @@ namespace jnet {
 
 		/**
 		* @brief JNetCore 단 세션이 제거된 후 호출되는 이벤트 함수
-		* @details
-		* 관리되는 세션이 제거된 후 호출되는 함수이다. 호출 시점에서 sessionID는 이미 제거된 세션 ID이며, 유효하지 않다. 
-		* 콘텐츠 서버와 같은 하위 클래스에서 sessionID를 기반으로 한 데이터를 해당 함수 재정의에서 제거하는 등 정리 작업을 수행할 수 있다.
+		* 
+		* @param sessionID 세션 아이디(uint64)
 		*/
-		virtual void OnSessionLeave(SessionID64 sessionID) {}
+		virtual void OnSessionLeave(SessionID64 sessionID);
 
-		virtual void OnError() {};
+		virtual void OnError();
 
 
 	private:
 		/**
-		* @brief Multi IOCP 작업자 스레드 간 thread-safe 하지 않은 세션에 대해 세션 점유 전 호출하는 함수
-		* @details
-		* multi 작업자 스레드
+		* @brief Multi IOCP 작업자 스레드 간 thread-safe 하지 않은 세션에 대해 세션 접근 전 호출하는 함수
+		* 
+		* @param 접근 대상 세션 아이디
+		* @return 해당 세션 객체 포인터
 		*/
 		JNetSession* AcquireSession(SessionID64 sessionID);				// called by SendPacket, BufferedSendPacket, SendBufferedPacket
-		void ReturnSession(JNetSession* session);							//						"   "
 
+		/**
+		* @brief AcquireSession을 통해 획득한 세션 객체 소유권 반납
+		*
+		* @param 세션 객체 포인터
+		*/
+		void ReturnSession(JNetSession* session);						//						"   "
+
+		/**
+		* @brief SendPacket 계열 함수 내부에서 호출되는 실질적 송신 요청 함수
+		*
+		* @param sessionID 송신 대상 세션 아이디
+		* @param onSendFlag 
+		*/
 		void SendPost(SessionID64 sessionID, bool onSendFlag = false);	// called by SendPacket, SendBufferedPacket
 																		// IOCP 송신 완료 통지 및 IOCP_COMPLTED_LPOVERLAPPED_SENDPOST_REQ 요청 시
 
+		/**
+		* @brief SendPost() 함수의 작업을 IOCP 작업자 스레드의 흐름에서 수행되도록 강제화를 요청하는 함수
+		*
+		* @param sessionID 송신 대상 세션 아이디
+		*/
 		void SendPostRequest(SessionID64 sessionID);					// IOCP_COMPLTED_LPOVERLAPPED_SENDPOST_REQ 식별자로 PostQueuedCompletionStatus 호출
 																		// IOCP 작업자 스레드에 SendPost 호출 책임 전가
-
+		/**
+		* @brief 세션 제거 시 송신 버퍼 정리
+		*/
 		void FreeBufferedSendPacket(LockFreeQueue<JBuffer*>& sendBufferQueue, queue<JBuffer*>& sendPostedQueue);
 
 		//////////////////////////////////////////////////
