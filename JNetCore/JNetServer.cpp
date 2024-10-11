@@ -2,6 +2,13 @@
 
 using namespace jnet;
 
+/**
+ * @brief JNetCore를 상속받은 서버 클래스 생성자
+ *
+ * @param serverIP 서버 IP 주소
+ * @param serverPort 서버 포트
+ * @param maximumOfConnections 최대 커넥션 수용 갯수
+ */
 jnet::JNetServer::JNetServer(
 	const char* serverIP, uint16 serverPort, uint16 maximumOfConnections,
 	BYTE packetCode_LAN, BYTE packetCode, BYTE packetSymmetricKey, 
