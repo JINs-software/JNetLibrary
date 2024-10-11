@@ -8,6 +8,10 @@
 #include "TlsMemPool.h"
 #include "JNetDB.h"
 
+/**
+* @namespace jnet
+* @brief JNetLibrary's namespace
+*/
 namespace jnet {
 
 ////////////////////////////////////////////////////
@@ -27,6 +31,9 @@ namespace jnet {
 	/********************************************************************
 	* JNetCore
 	********************************************************************/
+	/**
+	* @class JNetCore
+	*/
 	class JNetCore
 	{	
 	protected:
@@ -108,47 +115,62 @@ namespace jnet {
 		}
 
 	protected:
-		/////////////////////////////////////////////////////////////////
-		// OnWorkerThreadCreate
-		/////////////////////////////////////////////////////////////////
-		// 호출 시점: CLanServer::Start에서 스레드를 생성(CREATE_SUSPENDED) 후
-		// 반환: True 반환 시 생성된 스레드의 수행 시작
-		//		 False 반환 시 생성된 생성된 스레드 종료	
-		// Desc: 생성자에 전달한 IOCP 작업자 스레드 생성 갯수와 별개로 해당 함수의 구현부에서 IOCP 작업자 스레드 갯수 제어
-		//		또한 작업자 스레드의 수행 전 필요한 초기화 작업 수행(시점 상 OnWorkerThreadStart 호출 전)
-		virtual bool OnWorkerThreadCreate(HANDLE thHnd) { return true; }
+		/**
+		* @brief Start() 함수 내 IOCP 작업자 스레드 생성(CREATE_SUSPENDED) 후 호출되는 이벤트 함수
+		* 
+		* @param thHnd 생성된 IOCP 작업자 스레드 핸들
+		* @return 생성된 IOCP 작업자 스레드 수행 여부
+		*/
+		virtual bool OnWorkerThreadCreate(HANDLE thHnd);
 
-		/////////////////////////////////////////////////////////////////
-		// OnWorkerThreadCreateDone
-		/////////////////////////////////////////////////////////////////
-		// 호출 시점: CLanServer::Start에서 모든 IOCP 작업자 스레드 생성을 마친 후
+		/**
+		* @brief Start() 함수 내 요청된 수 만큼 IOCP 작업자 스레드를 생성한 후 함수를 빠져나오기 전 호출되는 이벤트 함수
+		*/
 		virtual void OnAllWorkerThreadCreate() {}
 
-		/////////////////////////////////////////////////////////////////
-		// OnWorkerThreadStart
-		/////////////////////////////////////////////////////////////////
-		// 호출 시점: 개별 IOCP 작업자 스레드가 수행하는 WorkerThreadFunc의 함수 초입부(GQCS가 포함된 작업 반복문 이전)
-		// Desc: 개별 스레드가 초기에 설정하는 작업 수행(ex, Thread Local Storage 관련 초기화)
+		/**
+		* @brief 개별 IOCP 작업자 스레드의 수행 흐름 초입부(WorkerThreadFunc 함수 초입부)에 호출되는 이벤트 함수, 개별 작업자 스레드의 초기화를 독립적으로 수행하도록 재정의 가능
+		* @details
+		* IOCP 작업자 스레드 개별 수행 흐름의 초입에 호출되는 함수로 GetQueuedCompletionStatus 함수가 포함된 작업 루프 이전에 호출된다.
+		* 주로 JNetCore 단에서 관리되는 TLS 기반의 메모리 풀을 할당받고, 초기화하는 작업을 수행한다.
+		*/
 		virtual void OnWorkerThreadStart() {}
 
-		/////////////////////////////////////////////////////////////////
-		// OnWorkerThreadEnd
-		/////////////////////////////////////////////////////////////////
-		// 호출 시점: 개별 IOCP 작업자 스레드가 종료(작업자 함수 return) 전
-		// Desc: 스레드 별 필요한 정리 작업 수행
+		/**
+		* @brief 개별 IOCP 작업자 스레드가 종료(작업자 함수 return) 전 호출되는 이벤트 함수
+		*/
 		virtual void OnWorkerThreadEnd() { std::cout << "IOCP Worker Thread Exits.."; }
 
-		//virtual void OnRecv(SessionID64 sessionID, JBuffer& recvBuff) {}
-		//virtual void OnRecv(SessionID64 sessionID, JSerialBuffer& recvSerialBuff) {}
+		/**
+		* @brief IOCP 작업자 스레드의 수신 완료 시 대상 세션의 수신 버퍼의 enqueue 오프셋 제어 후 호출되는 이벤트 함수
+		* @details
+		* IOCP 작업자 스레드의 수신 완료 시 대상 세션의 수신 버퍼의 enqueue 오프셋 제어 후 호출되는 함수이다.
+		* JNetCore는 순전히 IOCP 작업자 스레드와 세션 관리 및 송수신의 책임만을 제공하기에 수신 이후의 작업을 하위 클래스에서 정의하도록 순수 가상 함수로써 강제하였다.
+		* OnRecvCompletion 함수의 반환 이후 해당 세션의 수신 버퍼가 수신 요청되기에 OnRecvCompletion 함수에서는 수신 버퍼에 대한 작업자 스레드 간의 경쟁은 없다.
+		* 따라서 단지 수신 버퍼의 참조만을 전달하여 복사 비용 발생을 방지하였다.
+		* 
+		* @param sessionID 세션 아이디(uint64)
+		* @param recvRingBuffer 세션의 수신 버퍼 참조
+		*/
 		virtual void OnRecvCompletion(SessionID64 sessionID, JBuffer& recvRingBuffer) = 0;
+
+		/**
+		* @brief JNetCore 단 세션이 제거된 후 호출되는 이벤트 함수
+		* @details
+		* 관리되는 세션이 제거된 후 호출되는 함수이다. 호출 시점에서 sessionID는 이미 제거된 세션 ID이며, 유효하지 않다. 
+		* 콘텐츠 서버와 같은 하위 클래스에서 sessionID를 기반으로 한 데이터를 해당 함수 재정의에서 제거하는 등 정리 작업을 수행할 수 있다.
+		*/
 		virtual void OnSessionLeave(SessionID64 sessionID) {}
+
 		virtual void OnError() {};
 
 
 	private:
-		//////////////////////////////////////////////////
-		// 내부 호출 함수
-		//////////////////////////////////////////////////
+		/**
+		* @brief Multi IOCP 작업자 스레드 간 thread-safe 하지 않은 세션에 대해 세션 점유 전 호출하는 함수
+		* @details
+		* multi 작업자 스레드
+		*/
 		JNetSession* AcquireSession(SessionID64 sessionID);				// called by SendPacket, BufferedSendPacket, SendBufferedPacket
 		void ReturnSession(JNetSession* session);							//						"   "
 

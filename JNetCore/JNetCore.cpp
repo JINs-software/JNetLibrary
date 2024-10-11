@@ -109,6 +109,14 @@ void JNetCore::Stop()
 	}
 }
 
+/**
+* @details
+* 재정의를 통해 생성과 동시에 중지 상태인 IOCP 작업자 스레드의 핸들 인수를 통해 필요한 초기화 작업을 수행할 수 있다.
+* JNetCore에 설정된 IOCP 작업자 스레드 생성 갯수와 별개로 수행되는 작업자 스레드 갯수를 제어할 수 있다.
+* true 반환 시 중지된 작업자 스레드의 수행이 시작되고, false 반환 시 스레드는 강제 종료된다.
+*/
+bool JNetCore::OnWorkerThreadCreate(HANDLE thHnd) { return true; }
+
 void jnet::JNetCore::PrintLibraryInfoOnConsole()
 {
 	cout << "======================== JNetCore ========================" << endl;
