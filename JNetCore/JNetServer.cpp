@@ -14,7 +14,7 @@ jnet::JNetServer::JNetServer(
 	BYTE packetCode_LAN, BYTE packetCode, BYTE packetSymmetricKey, 
 	bool recvBufferingMode, 
 	uint16 maximumOfSessions, uint32 numOfIocpConcurrentThrd, uint16 numOfIocpWorkerThrd, 
-	size_t tlsMemPoolUnitCnt, size_t tlsMemPoolUnitCapacity, bool tlsMemPoolMultiReferenceMode, bool tlsMemPoolPlacementNewMode, 
+	size_t tlsMemPoolUnitCnt, size_t tlsMemPoolUnitCapacity,
 	uint32 memPoolBuffAllocSize, uint32 sessionRecvBuffSize,
 	bool calcTpsThread
 )
@@ -22,7 +22,7 @@ jnet::JNetServer::JNetServer(
 	m_PacketCode_LAN(packetCode_LAN), m_PacketCode(packetCode), m_PacketSymmetricKey(packetSymmetricKey), m_RecvBufferingMode(recvBufferingMode),
 	JNetCore(
 		maximumOfSessions, numOfIocpConcurrentThrd, numOfIocpWorkerThrd,
-		tlsMemPoolUnitCnt, tlsMemPoolUnitCapacity, tlsMemPoolMultiReferenceMode, tlsMemPoolPlacementNewMode,
+		tlsMemPoolUnitCnt, tlsMemPoolUnitCapacity,
 		memPoolBuffAllocSize, sessionRecvBuffSize,
 		calcTpsThread
 	)

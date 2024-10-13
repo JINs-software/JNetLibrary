@@ -5,13 +5,13 @@ using namespace jnet;
 JNetCore::JNetCore(
 	uint16 maximumOfSessions,
 	uint32 numOfIocpConcurrentThrd, uint16 numOfIocpWorkerThrd, 
-	size_t tlsMemPoolUnitCnt, size_t tlsMemPoolUnitCapacity, bool tlsMemPoolMultiReferenceMode, bool tlsMemPoolPlacementNewMode, 
+	size_t tlsMemPoolUnitCnt, size_t tlsMemPoolUnitCapacity,
 	uint32 memPoolBuffAllocSize, uint32 sessionRecvBuffSize,
 	bool calcTpsThread
 )
 	: m_MaximumOfSessions(maximumOfSessions), m_SessionIncrement(0),
 	m_NumOfIocpWorkerThrd(numOfIocpWorkerThrd),
-	m_TlsMemPoolMgr(tlsMemPoolUnitCnt, tlsMemPoolUnitCapacity, tlsMemPoolMultiReferenceMode, tlsMemPoolPlacementNewMode),
+	m_TlsMemPoolMgr(tlsMemPoolUnitCnt, tlsMemPoolUnitCapacity),
 	m_TlsMemPoolUnitCnt(tlsMemPoolUnitCnt), m_TlsMemPoolUnitCapacity(tlsMemPoolUnitCapacity),
 	m_MemPoolBuffAllocSize(memPoolBuffAllocSize),
 	m_CalcTpsFlag(calcTpsThread)

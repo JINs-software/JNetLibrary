@@ -49,7 +49,7 @@ namespace jnet {
 		std::vector<HANDLE>			m_IocpWorkerThrdHnds;		///< IOCP 작업자 스레드 핸들 벡터
 		std::vector<uint32>			m_IocpWorkerThrdIDs;		///< IOCP 작업자 스레드's ID 벡터
 
-		TlsMemPoolManager<JBuffer>	m_TlsMemPoolMgr;			///< Tls 메모리 풀 관리 (직렬화 패킷 버퍼 풀 할당 및 관리자)
+		TlsMemPoolManager<JBuffer, true, true>	m_TlsMemPoolMgr;			///< Tls 메모리 풀 관리 (직렬화 패킷 버퍼 풀 할당 및 관리자)
 		size_t						m_TlsMemPoolUnitCnt;
 		size_t						m_TlsMemPoolUnitCapacity;
 		uint32						m_MemPoolBuffAllocSize;
@@ -60,8 +60,6 @@ namespace jnet {
 		/// @param numOfIocpWorkerThrd  IOCP 작업자 스레드 수 설정
 		/// @param tlsMemPoolUnitCnt Tls 메모리 풀 객체 초기 할당량 결정(직렬화 패킷 버퍼 수)
 		/// @param tlsMemPoolUnitCapacity Tls 메모리 풀 객체 수용량 결정(직렬화 패킷 버퍼 최대 용량)
-		/// @param tlsMemPoolMultiReferenceMode Tls 메모리 풀 객체 참조 여부 결정(직렬화 패킷 버퍼 참조 여부)
-		/// @param tlsMemPoolPlacementNewMode Tls 메모리 풀 객체 placement_new 여부 결정(직렬화 패킷 placement_new 여부)
 		/// @param memPoolBuffAllocSize 
 		/// @param sessionRecvBuffSize
 		/// @param calcTpsThread
@@ -69,7 +67,6 @@ namespace jnet {
 			uint16 maximumOfSessions,
 			uint32 numOfIocpConcurrentThrd, uint16 numOfIocpWorkerThrd,
 			size_t tlsMemPoolUnitCnt, size_t tlsMemPoolUnitCapacity,
-			bool tlsMemPoolMultiReferenceMode, bool tlsMemPoolPlacementNewMode,
 			uint32 memPoolBuffAllocSize,
 			uint32 sessionRecvBuffSize,
 			bool calcTpsThread
@@ -375,7 +372,6 @@ private:
 			uint16 maximumOfSessions,
 			uint32 numOfIocpConcurrentThrd, uint16 numOfIocpWorkerThrd,
 			size_t tlsMemPoolUnitCnt, size_t tlsMemPoolUnitCapacity,
-			bool tlsMemPoolMultiReferenceMode, bool tlsMemPoolPlacementNewMode,
 			uint32 memPoolBuffAllocSize,
 			uint32 sessionRecvBuffSize,
 			bool calcTpsThread
@@ -446,6 +442,7 @@ private:
 		/// @brief 패킷 수신 시 호출되는 이벤트 함수
 		/// @param recvBuff jnet 정의 헤더 + 페이로드 단위의 낱개 수신 직렬화 버퍼
 		virtual void OnRecv(SessionID64 sessionID, JBuffer& recvBuff) {}
+
 		/// @brief 패킷 수신 시 호출되는 이벤트 함수, 수신 버퍼링 모드의 서버 전용
 		/// @param recvSerialBuff 복수의 수신 직렬화 버퍼를 추상화한 JSerialBuffer
 		virtual void OnRecv(SessionID64 sessionID, JSerialBuffer& recvSerialBuff) {}
@@ -482,7 +479,6 @@ private:
 			uint16 maximumOfSessions,
 			uint32 numOfIocpConcurrentThrd, uint16 numOfIocpWorkerThrd,
 			size_t tlsMemPoolUnitCnt, size_t tlsMemPoolUnitCapacity,
-			bool tlsMemPoolMultiReferenceMode, bool tlsMemPoolPlacementNewMode,
 			uint32 memPoolBuffAllocSize,
 			uint32 sessionRecvBuffSize,
 			bool calcTpsThread
@@ -492,7 +488,6 @@ private:
 			maximumOfSessions,
 			numOfIocpConcurrentThrd, numOfIocpWorkerThrd,
 			tlsMemPoolUnitCnt, tlsMemPoolUnitCapacity,
-			tlsMemPoolMultiReferenceMode, tlsMemPoolPlacementNewMode,
 			memPoolBuffAllocSize,
 			sessionRecvBuffSize,
 			calcTpsThread
@@ -559,7 +554,6 @@ private:
 			PACKET_CODE packetCode_LAN,
 			uint32 numOfIocpConcurrentThrd, uint16 numOfIocpWorkerThrd,
 			size_t tlsMemPoolUnitCnt, size_t tlsMemPoolUnitCapacity,
-			bool tlsMemPoolMultiReferenceMode, bool tlsMemPoolPlacementNewMode,
 			uint32 memPoolBuffAllocSize,
 			uint32 sessionRecvBuffSize,
 			bool calcTpsThread
@@ -568,7 +562,6 @@ private:
 				1,
 				numOfIocpConcurrentThrd, numOfIocpWorkerThrd,
 				tlsMemPoolUnitCnt, tlsMemPoolUnitCapacity,
-				tlsMemPoolMultiReferenceMode, tlsMemPoolPlacementNewMode,
 				memPoolBuffAllocSize,
 				sessionRecvBuffSize,
 				calcTpsThread
@@ -640,7 +633,6 @@ private:
 				uint16 maximumOfSessions,
 				uint32 numOfIocpConcurrentThrd, uint16 numOfIocpWorkerThrd,
 				size_t tlsMemPoolUnitCnt, size_t tlsMemPoolUnitCapacity,
-				bool tlsMemPoolMultiReferenceMode, bool tlsMemPoolPlacementNewMode,
 				uint32 memPoolBuffAllocSize,
 				uint32 sessionRecvBuffSize,
 				bool calcTpsThread
@@ -651,7 +643,6 @@ private:
 				maximumOfSessions,
 				numOfIocpConcurrentThrd, numOfIocpWorkerThrd,
 				tlsMemPoolUnitCnt, tlsMemPoolUnitCapacity,
-				tlsMemPoolMultiReferenceMode, tlsMemPoolPlacementNewMode,
 				memPoolBuffAllocSize,
 				sessionRecvBuffSize,
 				calcTpsThread
