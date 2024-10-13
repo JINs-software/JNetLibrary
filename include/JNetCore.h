@@ -87,7 +87,6 @@ namespace jnet {
 		void PrintLibraryInfoOnConsole();
 
 	protected:
-		
 		/// @brief 하위 클래스에서 세션 객체 생성 요청을 위해 호출하는 함수
 		/// @param sock 세션과 대응되는 유효한 소켓 핸들
 		/// @return 새로 생성 및 초기화된 세션 객체의 포인터
@@ -104,9 +103,26 @@ namespace jnet {
 		bool DeleteSession(SessionID64 sessionID);
 
 		void Disconnect(SessionID64 sessionID);
+		
+		// @brief 패킷 송신 요청 함수
+		// @param sessionID 송신 대상 세션 아이디
+		// @param 송신 직렬화 패킷 버퍼
+		// @postToWorker IOCP 작업자 스레드에 실질적 송신 작업(SendPost) 책임 전가
 		bool SendPacket(SessionID64 sessionID, JBuffer* sendPktPtr, bool postToWorker = false);
+
+		// @brief 동기식 송신 요청 함수
+		// @param sessionID 송신 대상 세션 아이디
+		// @param 송신 직렬화 패킷 버퍼
 		bool SendPacketBlocking(SessionID64 sessionID, JBuffer* sendPktPtr);
+
+		// @brief 세션 송신 버퍼 큐에 버퍼링(삽입만 진행)
+		// @param sessionID 송신 대상 세션 아이디
+		// @param 송신 직렬화 패킷 버퍼
 		bool BufferSendPacket(SessionID64 sessionID, JBuffer* sendPktPtr);
+
+		// @brief 세션 송신 버퍼 큐 내 송신 패킷 직렬화 버퍼에 대한 일괄 송신 작업 수행
+		// @param sessionID 송신 대상 세션 아이디
+		// @postToWorker IOCP 작업자 스레드에 실질적 송신 작업(SendPost) 책임 전가
 		bool SendBufferedPacket(SessionID64 sessionID, bool postToWorker = false);
 
 		/// @brief 직렬화 패킷 버퍼 Tls 풀 할당 함수
@@ -195,13 +211,16 @@ namespace jnet {
 		/// @brief 세션 제거 시 송신 버퍼 정리
 		void FreeBufferedSendPacket(LockFreeQueue<JBuffer*>& sendBufferQueue, queue<JBuffer*>& sendPostedQueue);
 
-		//////////////////////////////////////////////////
-		// IOCP 작업자 스레드 함수
-		//////////////////////////////////////////////////
+		/// @brief IOCP 작업자 스레드의 수행 함수
 		static UINT __stdcall WorkerThreadFunc(void* arg);
+
+		/// @brief IOCP 작업자 스레드의 세션 삭제 요청 처리 함수
 		void Proc_DeleteSession(JNetSession* session);
+		/// @brief IOCP 작업자 스레드의 송신 요청 시 처리 함수(SendPacket 계열 함수의 postToWorker 요청)
 		void Proc_SendPostRequest(JNetSession* session);
+		/// @brief IOCP 작업자 스레드의 수신 완료 통지 시 처리 함수
 		void Proc_RecvCompletion(JNetSession* session, DWORD transferred);
+		/// @brief IOCP 작업자 스레드의 송신 완료 통지 시 처리 함수
 		void Proc_SendCompletion(JNetSession* session);
 
 protected:
@@ -306,6 +325,11 @@ private:
 		bool TryRelease();
 	};
 
+
+	using PACKET_CODE		= BYTE;
+	using PACKET_SYMM_KEY	= BYTE;
+	using PACKET_LEN		= uint16;
+
 #pragma pack(push, 1)
 	struct stMSG_HDR {
 		BYTE	code;
@@ -325,25 +349,23 @@ private:
 	/********************************************************************
 	* JNetServer
 	********************************************************************/
+	/// @class JNetServer
 	class JNetServer : public JNetCore{
 	private:
-		SOCKADDR_IN					m_ListenSockAddr;
-		SOCKET						m_ListenSock;
+		SOCKADDR_IN					m_ListenSockAddr;			///< 서버 바인딩 주소
+		SOCKET						m_ListenSock;				///< 서버 리슨 소켓 
 
-		uint16						m_MaximumOfConnections;
-		uint16						m_NumOfConnections;
+		uint16						m_MaximumOfConnections;		///< 수용 가능한 최대 연결 수
+		uint16						m_NumOfConnections;			///< 현재 연결된 연결 수
 
-		HANDLE						m_AcceptThreadHnd;
+		HANDLE						m_AcceptThreadHnd;			///< Accept 스레드 핸들
 
-		bool						m_RecvBufferingMode;
+		bool						m_RecvBufferingMode;		///< 수신 버퍼링 모드 플래그
 
 	protected:
-		using PACKET_CODE = BYTE;
-		using PACKET_SYMM_KEY = BYTE;
-		using PACKET_LEN = uint16;
-		BYTE						m_PacketCode_LAN;
-		BYTE						m_PacketCode;
-		BYTE						m_PacketSymmetricKey;
+		BYTE						m_PacketCode_LAN;			///< LAN 내 통신 패킷 코드
+		BYTE						m_PacketCode;				///< LAN 외부 통신 패킷 코드
+		BYTE						m_PacketSymmetricKey;		///< 대칭 키
 
 	public:
 		JNetServer(
@@ -399,6 +421,9 @@ private:
 			return msg;
 		}
 	protected:
+		/// @brief Accept 반환 시 호출되는 이벤트 함수, 클라이언트 수용  여부를 반환을 통해 결정
+		/// @param clientSockAddr 연결 요청 클라이언트의 주소 정보
+		/// @return true: 클라이언트 연결 수용, false: 클라이언트 연결 종료
 		virtual bool OnConnectionRequest(const SOCKADDR_IN& clientSockAddr) {
 			if (m_NumOfConnections > m_MaximumOfConnections) {
 				return false;
@@ -407,9 +432,22 @@ private:
 				return true;
 			}
 		}
+
+		/// @brief 클라이언트 연결 수용 후 정상적으로 세션을 생성한 이 후 호출되는 이벤트 함수
+		/// @param sessionID 연결된 클라이언트 세션 ID
+		/// @param clientSockAddr 연결된 클라이언트 주소 정보
 		virtual void OnClientJoin(SessionID64 sessionID, const SOCKADDR_IN& clientSockAddr) = 0;
+
+		/// @brief 클라이언트와의 연결 종료 및 클라이언트 세션 제거 후 호출되는 이벤트 함수
+		/// @param sessionID 종료 클라이언트 세션 ID
+		/// @details 이벤트 함수 호출 이후 동일 세션 ID로 다른 이벤트 발생이 없음을 보장
 		virtual void OnClientLeave(SessionID64 sessionID) = 0;
+
+		/// @brief 패킷 수신 시 호출되는 이벤트 함수
+		/// @param recvBuff jnet 정의 헤더 + 페이로드 단위의 낱개 수신 직렬화 버퍼
 		virtual void OnRecv(SessionID64 sessionID, JBuffer& recvBuff) {}
+		/// @brief 패킷 수신 시 호출되는 이벤트 함수, 수신 버퍼링 모드의 서버 전용
+		/// @param recvSerialBuff 복수의 수신 직렬화 버퍼를 추상화한 JSerialBuffer
 		virtual void OnRecv(SessionID64 sessionID, JSerialBuffer& recvSerialBuff) {}
 
 	private:
@@ -420,9 +458,7 @@ private:
 		}
 
 	private:
-		//////////////////////////////////////////////////
-		// Accept 스레드 함수
-		//////////////////////////////////////////////////
+		/// @brief Accept 스레드의 수행 함수
 		static UINT __stdcall AcceptThreadFunc(void* arg);
 	};
 
@@ -515,8 +551,6 @@ private:
 		const char* m_ServerIP;
 		uint16 m_ServerPort;
 
-		using PACKET_CODE = BYTE;
-		using PACKET_LEN = uint16;
 		PACKET_CODE						m_PacketCode_LAN;
 
 	public:
