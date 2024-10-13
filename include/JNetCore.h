@@ -61,7 +61,7 @@ namespace jnet {
 		/// @param tlsMemPoolUnitCnt Tls 메모리 풀 객체 초기 할당량 결정(직렬화 패킷 버퍼 수)
 		/// @param tlsMemPoolUnitCapacity Tls 메모리 풀 객체 수용량 결정(직렬화 패킷 버퍼 최대 용량)
 		/// @param tlsMemPoolMultiReferenceMode Tls 메모리 풀 객체 참조 여부 결정(직렬화 패킷 버퍼 참조 여부)
-		/// @param tlsMemPoolPlacementNewMode Tls 메모리 풀 객체 placement_new 여부 결정(직렬화 패킷 placement_new여부)
+		/// @param tlsMemPoolPlacementNewMode Tls 메모리 풀 객체 placement_new 여부 결정(직렬화 패킷 placement_new 여부)
 		/// @param memPoolBuffAllocSize 
 		/// @param sessionRecvBuffSize
 		/// @param calcTpsThread
