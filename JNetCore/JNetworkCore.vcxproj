@@ -24,6 +24,7 @@
     <ClInclude Include="..\include\JNetCore.h" />
     <ClInclude Include="..\include\JNetDB.h" />
     <ClInclude Include="..\include\WinSocketAPI.h" />
+    <ClInclude Include="MACRO.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="JNetClient.cpp" />

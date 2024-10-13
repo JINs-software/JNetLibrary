@@ -31,32 +31,40 @@ namespace jnet {
 	/********************************************************************
 	* JNetCore
 	********************************************************************/
-	/**
-	* @class JNetCore
-	*/
+	/// @class JNetCore
 	class JNetCore
 	{	
 	protected:
-		// JNetCore에서만 접근하는 세션 클래스
+		/// @brief JNetCore 단 관리 대상 세션 추상화
 		struct JNetSession;
 
 	private:
-		std::vector<JNetSession*>	m_Sessions;
-		uint16						m_MaximumOfSessions;
-		LockFreeQueue<uint16>		m_SessionIndexQueue;
-		uint64						m_SessionIncrement;
+		std::vector<JNetSession*>	m_Sessions;					///< 세션 관리 벡터
+		uint16						m_MaximumOfSessions;		///< 수용 가능한 최대 세션 수
+		LockFreeQueue<uint16>		m_SessionIndexQueue;		///< 세션 인덱스 할당 큐	(SessionID's index part)
+		uint64						m_SessionIncrement;			///< 세션 증분				(SessionID's increment part)
 
-		HANDLE						m_IOCP;
-		uint16						m_NumOfIocpWorkerThrd;
-		std::vector<HANDLE>			m_IocpWorkerThrdHnds;
-		std::vector<uint32>			m_IocpWorkerThrdIDs;
+		HANDLE						m_IOCP;						///< JNetCore's IOCP 객체
+		uint16						m_NumOfIocpWorkerThrd;		///< IOCP 작업자 스레드 갯수
+		std::vector<HANDLE>			m_IocpWorkerThrdHnds;		///< IOCP 작업자 스레드 핸들 벡터
+		std::vector<uint32>			m_IocpWorkerThrdIDs;		///< IOCP 작업자 스레드's ID 벡터
 
-		TlsMemPoolManager<JBuffer>	m_TlsMemPoolMgr;
+		TlsMemPoolManager<JBuffer>	m_TlsMemPoolMgr;			///< Tls 메모리 풀 관리 (직렬화 패킷 버퍼 풀 할당 및 관리자)
 		size_t						m_TlsMemPoolUnitCnt;
 		size_t						m_TlsMemPoolUnitCapacity;
 		uint32						m_MemPoolBuffAllocSize;
 
 	public:
+		/// @param maximumOfSessions 수용 가능 최대 세션 수 설정
+		/// @param numOfIocpConcurrentThrd IOCP 'concurrent threads' 설정
+		/// @param numOfIocpWorkerThrd  IOCP 작업자 스레드 수 설정
+		/// @param tlsMemPoolUnitCnt Tls 메모리 풀 객체 초기 할당량 결정(직렬화 패킷 버퍼 수)
+		/// @param tlsMemPoolUnitCapacity Tls 메모리 풀 객체 수용량 결정(직렬화 패킷 버퍼 최대 용량)
+		/// @param tlsMemPoolMultiReferenceMode Tls 메모리 풀 객체 참조 여부 결정(직렬화 패킷 버퍼 참조 여부)
+		/// @param tlsMemPoolPlacementNewMode Tls 메모리 풀 객체 placement_new 여부 결정(직렬화 패킷 placement_new여부)
+		/// @param memPoolBuffAllocSize 
+		/// @param sessionRecvBuffSize
+		/// @param calcTpsThread
 		JNetCore(
 			uint16 maximumOfSessions,
 			uint32 numOfIocpConcurrentThrd, uint16 numOfIocpWorkerThrd,
@@ -70,7 +78,8 @@ namespace jnet {
 		
 		bool Start();
 		void Stop();
-		inline uint16 GetCurrentSessions() {
+		inline uint16 GetCurrentSessions() 
+		{
 			return m_MaximumOfSessions - m_SessionIndexQueue.GetSize();
 		}
 
@@ -78,26 +87,20 @@ namespace jnet {
 		void PrintLibraryInfoOnConsole();
 
 	protected:
-		/**
-		* @brief 하위 클래스에서 세션 객체 생성 요청을 위해 호출하는 함수
-		* 
-		* @param 세션과 대응되는 유효한 소켓 핸들
-		* @return 새로 생성 및 초기화된 세션 객체의 포인터
-		*/
+		
+		/// @brief 하위 클래스에서 세션 객체 생성 요청을 위해 호출하는 함수
+		/// @param sock 세션과 대응되는 유효한 소켓 핸들
+		/// @return 새로 생성 및 초기화된 세션 객체의 포인터
 		JNetSession* CreateNewSession(SOCKET sock);
-		/**
-		* @brief 하위 클래스에서 세션 객체를 IOCP 등록을 위해 호출하는 함수
-		*
-		* @param 등록하고자 하는 세션 객체 포인터
-		* @return 등록 성공 여부
-		*/
+		
+		/// @brief 하위 클래스에서 세션 객체를 IOCP 등록을 위해 호출하는 함수
+		/// @param session 등록하고자 하는 세션 객체 포인터
+		/// @return 등록 성공 여부
 		bool RegistSessionToIOCP(JNetSession* session);
-		/**
-		* @brief 세션 제거 요청 함수
-		*
-		* @param 제거하고자하는 세션 아이디
-		* @return true 반환 시 세션 제거, false 반환 시 이미 제거되었거나 제거 로직이 다른 스레드를 통해 수행중인 상황을 암시
-		*/
+
+		// @brief 세션 제거 요청 함수
+		// @param sessionID 제거하고자하는 세션 아이디
+		// @return true 반환 시 세션 제거, false 반환 시 이미 제거되었거나 제거 로직이 다른 스레드를 통해 수행중인 상황을 암시
 		bool DeleteSession(SessionID64 sessionID);
 
 		void Disconnect(SessionID64 sessionID);
@@ -106,20 +109,24 @@ namespace jnet {
 		bool BufferSendPacket(SessionID64 sessionID, JBuffer* sendPktPtr);
 		bool SendBufferedPacket(SessionID64 sessionID, bool postToWorker = false);
 
-		
-		// TLS 메모리 풀 할당 요청 함수
+		/// @brief 직렬화 패킷 버퍼 Tls 풀 할당 함수
 		inline DWORD AllocTlsMemPool() {
 			return m_TlsMemPoolMgr.AllocTlsMemPool(m_TlsMemPoolUnitCnt, m_TlsMemPoolUnitCapacity, m_MemPoolBuffAllocSize);
 		}
-		// TLS 메모리 풀 직렬화 버퍼 할당 및 반환 그리고 참조 카운트 증가 함수
+
+		/// @brief 직렬화 패킷 버퍼 할당 요청 wrapper
 		inline JBuffer* AllocSerialBuff() {
 			JBuffer* msg = m_TlsMemPoolMgr.GetTlsMemPool().AllocMem(1, m_MemPoolBuffAllocSize);
 			msg->ClearBuffer();
 			return msg;
 		}
+
+		/// @brief 직렬화 패킷 버퍼 반환 wrapper
 		inline void FreeSerialBuff(JBuffer* buff) {
 			m_TlsMemPoolMgr.GetTlsMemPool().FreeMem(buff);
 		}
+
+		/// @brief 직렬화 패킷 버퍼 참조 카운트 증가 wrapper
 		inline void AddRefSerialBuff(JBuffer* buff) {
 			m_TlsMemPoolMgr.GetTlsMemPool().IncrementRefCnt(buff, 1);
 		}
@@ -133,87 +140,59 @@ namespace jnet {
 		}
 
 	protected:
-		/**
-		* @brief Start() 함수 내 IOCP 작업자 스레드 생성(CREATE_SUSPENDED) 후 호출되는 이벤트 함수
-		* 
-		* @param thHnd 생성된 IOCP 작업자 스레드 핸들
-		* @return 생성된 IOCP 작업자 스레드 수행 여부
-		*/
+		/// @brief Start() 함수 내 IOCP 작업자 스레드 생성(CREATE_SUSPENDED) 후 호출되는 이벤트 함수
+		/// @param thHnd 생성된 IOCP 작업자 스레드 핸들
+		/// @return 생성된 IOCP 작업자 스레드 수행 여부
 		virtual bool OnWorkerThreadCreate(HANDLE thHnd);
 
-		/**
-		* @brief Start() 함수 내 요청된 수 만큼 IOCP 작업자 스레드를 생성한 후 함수를 빠져나오기 전 호출되는 이벤트 함수
-		*/
+		/// @brief Start() 함수 내 요청된 수 만큼 IOCP 작업자 스레드를 생성한 후 함수를 빠져나오기 전 호출되는 이벤트 함수
 		virtual void OnAllWorkerThreadCreate();
 
-		/**
-		* @brief 개별 IOCP 작업자 스레드의 수행 흐름 초입부(WorkerThreadFunc 함수 초입부)에 호출되는 이벤트 함수, 개별 작업자 스레드의 초기화를 독립적으로 수행하도록 재정의 가능
-		*/
+		/// @brief 개별 IOCP 작업자 스레드의 수행 흐름 초입부(WorkerThreadFunc 함수 초입부)에 호출되는 이벤트 함수, 개별 작업자 스레드의 초기화를 독립적으로 수행하도록 재정의 가능
 		virtual void OnWorkerThreadStart();
 
-		/**
-		* @brief 개별 IOCP 작업자 스레드가 종료(작업자 함수 return) 전 호출되는 이벤트 함수
-		*/
+		/// @brief 개별 IOCP 작업자 스레드가 종료(작업자 함수 return) 전 호출되는 이벤트 함수
 		virtual void OnWorkerThreadEnd();
 
-		/**
-		* @brief IOCP 작업자 스레드의 수신 완료 시 대상 세션의 수신 버퍼의 enqueue 오프셋 제어 후 호출되는 이벤트 함수
-		* @details
-		* IOCP 작업자 스레드의 수신 완료 시 대상 세션의 수신 버퍼의 enqueue 오프셋 제어 후 호출되는 함수이다.
-		* JNetCore는 순전히 IOCP 작업자 스레드와 세션 관리 및 송수신의 책임만을 제공하기에 수신 이후의 작업을 하위 클래스에서 정의하도록 순수 가상 함수로써 강제하였다.
-		* OnRecvCompletion 함수의 반환 이후 해당 세션의 수신 버퍼가 수신 요청되기에 OnRecvCompletion 함수에서는 수신 버퍼에 대한 작업자 스레드 간의 경쟁은 없다.
-		* 따라서 단지 수신 버퍼의 참조만을 전달하여 복사 비용 발생을 방지하였다.
-		* 
-		* @param sessionID 세션 아이디(uint64)
-		* @param recvRingBuffer 세션의 수신 버퍼 참조
-		*/
+		/// @brief IOCP 작업자 스레드의 수신 완료 시 대상 세션의 수신 버퍼의 enqueue 오프셋 제어 후 호출되는 이벤트 함수
+		/// @details
+		/// IOCP 작업자 스레드의 수신 완료 시 대상 세션의 수신 버퍼의 enqueue 오프셋 제어 후 호출되는 함수이다.
+		/// JNetCore는 순전히 IOCP 작업자 스레드와 세션 관리 및 송수신의 책임만을 제공하기에 수신 이후의 작업을 하위 클래스에서 정의하도록 순수 가상 함수로써 강제하였다.
+		/// OnRecvCompletion 함수의 반환 이후 해당 세션의 수신 버퍼가 수신 요청되기에 OnRecvCompletion 함수에서는 수신 버퍼에 대한 작업자 스레드 간의 경쟁은 없다.
+		/// 따라서 단지 수신 버퍼의 참조만을 전달하여 복사 비용 발생을 방지하였다.
+		/// 
+		/// @param sessionID 세션 아이디(uint64)
+		/// @param recvRingBuffer 세션의 수신 버퍼 참조
 		virtual void OnRecvCompletion(SessionID64 sessionID, JBuffer& recvRingBuffer) = 0;
 
-		/**
-		* @brief JNetCore 단 세션이 제거된 후 호출되는 이벤트 함수
-		* 
-		* @param sessionID 세션 아이디(uint64)
-		*/
+		/// @brief JNetCore 단 세션이 제거된 후 호출되는 이벤트 함수
+		/// @param sessionID 세션 아이디(uint64)
 		virtual void OnSessionLeave(SessionID64 sessionID);
 
 		virtual void OnError();
 
 
 	private:
-		/**
-		* @brief Multi IOCP 작업자 스레드 간 thread-safe 하지 않은 세션에 대해 세션 접근 전 호출하는 함수
-		* 
-		* @param 접근 대상 세션 아이디
-		* @return 해당 세션 객체 포인터
-		*/
+		// @brief Multi IOCP 작업자 스레드 간 thread-safe 하지 않은 세션에 대해 세션 접근 전 호출하는 함수
+		// @param 접근 대상 세션 아이디
+		// @return 해당 세션 객체 포인터
 		JNetSession* AcquireSession(SessionID64 sessionID);				// called by SendPacket, BufferedSendPacket, SendBufferedPacket
 
-		/**
-		* @brief AcquireSession을 통해 획득한 세션 객체 소유권 반납
-		*
-		* @param 세션 객체 포인터
-		*/
+		/// @brief AcquireSession을 통해 획득한 세션 객체 소유권 반납
+		/// @param 세션 객체 포인터
 		void ReturnSession(JNetSession* session);						//						"   "
 
-		/**
-		* @brief SendPacket 계열 함수 내부에서 호출되는 실질적 송신 요청 함수
-		*
-		* @param sessionID 송신 대상 세션 아이디
-		* @param onSendFlag 
-		*/
+		/// @brief SendPacket 계열 함수 내부에서 호출되는 실질적 송신 요청 함수
+		/// @param sessionID 송신 대상 세션 아이디
+		/// @param onSendFlag 
 		void SendPost(SessionID64 sessionID, bool onSendFlag = false);	// called by SendPacket, SendBufferedPacket
 																		// IOCP 송신 완료 통지 및 IOCP_COMPLTED_LPOVERLAPPED_SENDPOST_REQ 요청 시
 
-		/**
-		* @brief SendPost() 함수의 작업을 IOCP 작업자 스레드의 흐름에서 수행되도록 강제화를 요청하는 함수
-		*
-		* @param sessionID 송신 대상 세션 아이디
-		*/
+		/// @brief SendPost() 함수의 작업을 IOCP 작업자 스레드의 흐름에서 수행되도록 강제화를 요청하는 함수
+		/// @param sessionID 송신 대상 세션 아이디
 		void SendPostRequest(SessionID64 sessionID);					// IOCP_COMPLTED_LPOVERLAPPED_SENDPOST_REQ 식별자로 PostQueuedCompletionStatus 호출
 																		// IOCP 작업자 스레드에 SendPost 호출 책임 전가
-		/**
-		* @brief 세션 제거 시 송신 버퍼 정리
-		*/
+		/// @brief 세션 제거 시 송신 버퍼 정리
 		void FreeBufferedSendPacket(LockFreeQueue<JBuffer*>& sendBufferQueue, queue<JBuffer*>& sendPostedQueue);
 
 		//////////////////////////////////////////////////
@@ -273,6 +252,7 @@ private:
 	/********************************************************************
 	* JNetCore::JNetSession
 	********************************************************************/
+	/// @class JNetCore에서 관리되는 세션 구조체
 	struct JNetCore::JNetSession {
 		struct SessionID {
 			uint64	idx : 16;
