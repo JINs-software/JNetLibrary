@@ -23,6 +23,8 @@
     <ClInclude Include="..\include\CommTypes.h" />
     <ClInclude Include="..\include\JNetCore.h" />
     <ClInclude Include="..\include\JNetDB.h" />
+    <ClInclude Include="..\include\Job.h" />
+    <ClInclude Include="..\include\JobHandler.h" />
     <ClInclude Include="..\include\WinSocketAPI.h" />
     <ClInclude Include="MACRO.h" />
   </ItemGroup>
@@ -35,6 +37,8 @@
     <ClCompile Include="JNetOdbcServer.cpp" />
     <ClCompile Include="JNetServer.cpp" />
     <ClCompile Include="JNetSession.cpp" />
+    <ClCompile Include="Job.cpp" />
+    <ClCompile Include="JobHandler.cpp" />
     <ClCompile Include="WinSocketAPI.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

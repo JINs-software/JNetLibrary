@@ -9,6 +9,12 @@
     <ClInclude Include="MACRO.h">
       <Filter>PreCompile</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\Job.h">
+      <Filter>Job</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\JobHandler.h">
+      <Filter>Job</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="JNetSession.cpp" />
@@ -20,6 +26,12 @@
     <ClCompile Include="JNetGroup.cpp" />
     <ClCompile Include="JNetClient.cpp" />
     <ClCompile Include="JNetOdbcServer.cpp" />
+    <ClCompile Include="Job.cpp">
+      <Filter>Job</Filter>
+    </ClCompile>
+    <ClCompile Include="JobHandler.cpp">
+      <Filter>Job</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="PreCompile">
@@ -30,6 +42,9 @@
     </Filter>
     <Filter Include="Thread">
       <UniqueIdentifier>{fa1229ed-4b78-4557-8249-e24c9584340e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Job">
+      <UniqueIdentifier>{57537d6c-5333-4521-b0c4-6cebcf4b921c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
