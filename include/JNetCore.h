@@ -49,7 +49,7 @@ namespace jnet {
 		std::vector<HANDLE>			m_IocpWorkerThrdHnds;		///< IOCP 작업자 스레드 핸들 벡터
 		std::vector<uint32>			m_IocpWorkerThrdIDs;		///< IOCP 작업자 스레드's ID 벡터
 
-		TlsMemPoolManager<JBuffer, true, true>	m_TlsMemPoolMgr;			///< Tls 메모리 풀 관리 (직렬화 패킷 버퍼 풀 할당 및 관리자)
+		TlsMemPoolManager<JBuffer, true, false>	m_TlsMemPoolMgr;			///< Tls 메모리 풀 관리 (직렬화 패킷 버퍼 풀 할당 및 관리자)
 		size_t						m_TlsMemPoolUnitCnt;
 		size_t						m_TlsMemPoolUnitCapacity;
 		uint32						m_MemPoolBuffAllocSize;
