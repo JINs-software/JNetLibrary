@@ -286,6 +286,8 @@ UINT __stdcall JNetServer::AcceptThreadFunc(void* arg) {
 			}
 		}
 		else {
+			int32 errCode = ::WSAGetLastError();
+			cout << "[err] Accept Thread Exit..." << errCode << endl;
 			break;
 		}
 	}

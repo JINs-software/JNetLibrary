@@ -1,5 +1,6 @@
 #pragma once
 #include <LockFreeQueue.h>
+#include "CommTypes.h"
 #include "Job.h"
 
 class JobHandler : public std::enable_shared_from_this<JobHandler>
@@ -25,6 +26,7 @@ private:
 	void executablePush(JobRef job);
 
 private:
-	LockFreeQueue<JobRef> m_AllocatedJobs;
+	uint32					m_AtomicJobCnt;
+	LockFreeQueue<JobRef>	m_AllocatedJobs;
 };
 
