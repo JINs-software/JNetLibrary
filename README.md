@@ -1,82 +1,104 @@
 ### \[개요\]
-IOCP 모델을 적용한 네트워크 코어 라이브러리이다. 내부에서 자체적으로 세션 연결을 관리하고, IOCP 작업자 스레드를 통해 클라이언트와 비동기 패킷 송수신을 수행한다. 
-세션과의 연결 확립/종료, 송수신의 결과를 이벤트 함수(가상 함수)를 통해 알리며, 게임 서버 구현 시 이 이벤트 함수를 재정의하여 클라이언트 연결 및 종료를 관리하고, 
-수신된 패킷을 처리하며, 컨텐츠 패킷을 송신한다.
+select 모델에서 나아가 비동기 I/O를 수행하는 네트워크 라이브러리 프로젝트이다. 비동기 I/O 요청에 대한 완료 통지 수신 방법은 여러 가지가 있고, 지능적인 스레드 풀 관리와 더불어 완료 통지를 처리하며, 추가적인 I/O 요청을 수월하게 할 수 있는 윈도우 IOCP 객체를 적극 활용한다.
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/f2761a6f-32c9-4721-8ebe-f89883711651" width="800">
-</p>
+네트워크가 제공하는 큰 기능의 골자는 아래와 같다.
 
-#### (Refactoring CLanServer)
-https://github.com/JINs-software/CLanLibrary
+**1. 클라이언트 세션 생명 주기 관리**
 
-JNetLibrary는 기존 네트워크 코어 라이브러리인 'CLanLibrary'를 개량한 라이브러리이다.
-리포지토리의 LoginServer, ChattingServer, EchoGameServer는 CLanLibrary를 상속하여 만든 프로젝트이며, 현재 JNetLibrary을 활용한 서버 프로젝트는 EchoGameServer_withJNet과 MarchOfWind(MOW, 스타크래프트 유즈맵 게임인 '신전 뿌수기' 류의 게임 모작)이 있다. 추후 채팅 서버와 로그인 서버도 JNetLibrary를 활용한 버전으로 변경 예정
+**2. 클라이언트 연결 및 패킷 수신 시 이벤트 함수 호출**
 
-(구 버전 프로젝트, 성능 및 기능 7일 테스트 통과)
+**3. 라이브러리 기능 요청 함수 (메시지 송신, 연결 강제 종료)**
 
-- Login Server: https://github.com/JINs-software/LoginServer
-- Chatting Server: https://github.com/JINs-software/ChattingServer
-- ~~EchoGame Server: https://github.com/JINs-software/EchoGameServer~~
+이 기능들은 라이브러리 사용 측에 추상화로 제공되어, 다양한 컨텐츠 서버들(채팅/로그인/에코/게임 등)을 빠르고 쉽게 구현할 수 있도록 한다.
 
-(JNetLibrary 프로젝트)
+![](https://velog.velcdn.com/images/jinh2352/post/f57ad30d-8f5f-4b7e-843c-ee2e16b224b6/image.png)
 
-- Login Server: https://github.com/JINs-software/LoginServer_JNet
-- Chatting Server: https://github.com/JINs-software/ChattingServer_JNet
-- EchoGame Server: https://github.com/JINs-software/EchoGameServer_JNet
-- MarchOfWind Server: https://github.com/JINs-software/MarchOfWindServer
 
-#### Class Diagram
-![image](https://github.com/user-attachments/assets/d696e76b-669e-496c-a2bf-0c4978ba4d0e)
-
----
-
-### \[기술 스택\]
-- C++
-- Winodws Socket Programming
-- Windows Syncronization Objects
-- Windows OVERLAPPED I/O
-- IOCP
-
----
-
-### \[라이브러리 클래스 구조\]
-
-### JNetCore, JNetServer
-* JNetCore: 클라이언트 TCP 세션 관리, IOCP 작업자 스레드 관리
+#### \[활용 기술\]
+* Windows Socket Programming
+* Windows Synchronization Objects
+* Windows OVERLAPPED I/O
+* Windows I/O Completion Port(IOCP)
+* MS Open Database Connectivity(ODBC)
   
-* JNetServer: JNetCore의 구체 클래스, Listen socket을 통해 클라이언트의 연결 요청에 대한 accept를 수행하는 accept 스레드 관리
+#### \[라이브러리 API 문서\]
+https://jins-software.github.io/JNetLibrary/annotated.html
+  
+#### \[라이브러리 활용 컨텐츠 서버 프로젝트\]
+* Login Server: https://github.com/JINs-software/LoginServer_JNet
+* Chatting Server: https://github.com/JINs-software/ChattingServer_JNet
+* Chatting Server(with Lib's Job): https://github.com/JINs-software/ChattingServer_MultiJob 
+* Echo Server: https://github.com/JINs-software/EchoGameServer_JNet
+* Game Server: https://github.com/JINs-software/MarchOfWindServer
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/03d941b4-749c-43f7-bd6b-e58d654f819c" width="800">
-</p>
-
-### JNetGroupServer, JNetGroupThread
-* JNetGroupServer
-    * JNetServer의 구체 클래스
-    * 내부의 맵핑 자료구조를 통해 클라이언트 세션을 싱글 스레드 구조의 ‘그룹’에 맵핑. 해당 스레드(그룹)는 연결된 클라이언트와 독립적으로 연결되어 있는 추상화를 제공받음.
-
-* JNetGroupThread
-    * 그룹에 속한 세션들의 수신 패킷을 담는 락-프리 큐 존재
-    * 싱글 업데이트 스레드가 존재하여, 수신 패킷의 락-프리 큐에서 패킷을 획득하고 OnMessage 가상 함수를 호출하여 컨텐츠 코드가 수행되도록 함
-    * 로비 그룹, 배틀 필드 그룹은 JNetGroupThread를 상속 받은 그룹 클래스이며, OnEnterClient에 클라이언트 접속 로직을 처리, OnMessage에 수신 패킷 처리
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/7f867f1d-4d72-4230-8139-f4735f8a9c5e" width="800">
-</p>
-
-### 이 외
-
-* **JNetClient**
-    * 기본적인 클라이언트 기능을 제공받을 수 있는 클래스
-    * ex) 모니터링 서버(JNetServer 구체 클래스) <-> 로그인/채팅/에코 서버 모니터링 클라이언트(JNetClient 구체 클래스)
-      
-* **JNetOdbcServer**
-    * JNetServer 구체 클래스
-    * MS의 DBMS 독립적 애플리케이션 구현에 사용되는 ODBC API를 활용
-    * ODBC를 통한 DB 연결 및 쿼리 요창, 응답 확인 등의 기능을 제공하는 JNetDBConn에 대한 풀을 멤버로 가짐
-    * 컨텐츠 코드에 DB 연결 추상화를 제공
+#### (cf, 'CLanLibrary': 구 버전 네트워크 라이브러리)
+JNetLibrary는 기존 네트워크 코어 라이브러리인 'CLanLibrary'를 개량한 라이브러리이다. 리포지토리의 LoginServer, ChattingServer('\_JNet' 접미사가 붙지 않은)는 CLanLibrary를 상속하여 만든 프로젝트이다.
+* CLanLibrary: https://github.com/JINs-software/CLanLibrary
+  * Login Server: https://github.com/JINs-software/LoginServer
+  * Chatting Server: https://github.com/JINs-software/ChattingServer
+  * Monitoring Server: https://github.com/JINs-software/MonitoringServer
 
 ---
+
+### \[JNetLibrary's Class]
+JNetLibrary는 기본적으로 ‘세션 생명 주기 관리’ 및 ‘비동기 I/O 처리’ 기능을 제공하는 최상위 클래스(JNetCore)부터 구체적인 기능(서버 또는 클라이언트 기능, DB 커넥션 기능, 세션 그룹화)이 추가되는 하위 클래스들로 구성됩니다. 또한 LAN 구간 내 다른 서버와 연결되어 클라이언트 역할을 수행할 수 있는 클라이언트 클래스(JNetClient)도 포함됩니다.
+
+![](https://velog.velcdn.com/images/jinh2352/post/4817d3d9-ddf3-4189-8ab2-1d0f3787cb72/image.png)
+
+컨텐츠 기능에 맞게 특정 라이브러리 내 클래스를 상속받아 ‘TCP 연결’ 및 ‘메시지 수신’ 시 호출되는 이벤트 함수를 재정의하여 메시지를 통해 전달되는 요청을 처리하는 컨텐츠 코드를 작성합니다. 컨텐츠 코드에선 역으로 라이브러리 단 기능을 함수 호출을 통해 요청하여 메시지 송신 및 연결 강제 종료 등의 작업을 수행할 수 있습니다.
+
+</br>
+
+#### \[JNetCore / JNetServer 클래스]
+![](https://velog.velcdn.com/images/jinh2352/post/3a65c5c1-8a99-4f83-b6dc-11ba7a96b696/image.png)
+
+**JNetCore**
+클라이언트의 TCP 세션의 생명 주기를 'JNetSession' 객체를 통해 관리하며, 다수의 작업자 IOCP 작업자 스레드 간 세션 참조 상황 (ex, 특정 클라이언트 세션에 패킷 송신)에서 thread-safe 성을 보장해줍니다.
+JNetCore 하위 클래스 단 작업 중 클라이언트 접속 완료(JNetServer) 및 다른 LAN 서버와의 커넥트 성공(JNetClient) 시 연결 소켓을 전달하며 세션 객체 생성 및 IOCP에 소켓 장치 등록을 요청합니다. 이 후 해당 세션으로의 메시지 송신 및 연결 강제 종료는 thread-safe한 요청 함수를 통해 실현하며, 메시지 수신 및 연결 종료 이벤트를 받을 수 있습니다. 
+* 대표 이벤트 함수: OnReceiveCompletion, OnSeissonLeave
+* 대표 기능 제공 함수: SendPacket
+
+
+**JNetServer**
+클라이언트의 연결 요청에 대한 Accept를 수행하는 Accept 스레드 관리
+클라이언트와의 연결 수립 시 세션 생성 및 연결 소켓을 IOCP에 등록
+* 대표 이벤트 함수: OnClientJoin, OnRecv(with decoded packet)
+* 대표 기능 제공 함수: SendPacket(encoding packet)
+
+</br>
+
+#### \[JNetGroupServer / JNetGroupThread 클래스]
+
+클라이언트 세션의 패킷에 대한 직렬 처리와 독점적 세션 참조(락이 필요없는)를 보장하기 위해 JNetServer에서 기능을 확장하면서 세션 그룹화라는 추상화를 제공하는 하위 서버 및 그룹과 맵핑되는 클래스 구조입니다.
+
+![](https://velog.velcdn.com/images/jinh2352/post/214c4832-70f7-4f9e-93e6-f26d315a8fd7/image.png)
+
+**JNetGroupServer**
+세션-그룹ID 맵핑 / 그룹ID-그룹 스레드 맵핑 자료구조를 통해 세션을 각 그룹에 소속시키고, 각 그룹을 독점적으로 처리하는 싱글 스레드에 배정시킵니다.
+* 대표 기능 제공 함수: CreateGroup, EnterSessionGroup, ForwardMessage
+
+**JNetGroupThread**
+각 그룹의 패킷은 그룹과 맵핑된 싱글 그룹 스레드에게만 전달되기에 
+해당 싱글 스레드는 패킷을 직렬 처리가 가능하며, 
+독점적으로 세션을 점유하기에 락(lock) 기반의 동기화가 필요 없습니다. 
+* 대표 이벤트 함수: OnMessage, OnEnterClient
+
+</br>
+
+#### \[이 외 JNetOdbcServer, JNetClient 클래스\]
+
+**JNetClient**
+* 기본적인 클라이언트 기능을 제공받을 수 있는 클래스
+* ex, 모니터링 서버(JNetServer 구체 클래스) <-> 로그인/채팅/에코 서버 모니터링 클라이언트(JNetClient 구체 클래스)
+
+**JNetOdbcServer**
+* MS의 DBMS 독립적 애플리케이션 구현에 사용되는 ODBC API를 활용
+* ODBC를 통한 DB 연결/쿼리 요청/응답 확인 등의 기능을 제공하는 JNetDBConn Pool 관리
+* 컨텐츠 코드에 DB 연결 및 접근 추상화를 제공
+
+
+---
+
 
 ### \[라이브러리 클래스 주요 멤버\]
 
