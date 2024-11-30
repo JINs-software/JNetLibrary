@@ -2,13 +2,6 @@
 
 using namespace jnet;
 
-/**
- * @brief JNetCore를 상속받은 서버 클래스 생성자
- *
- * @param serverIP 서버 IP 주소
- * @param serverPort 서버 포트
- * @param maximumOfConnections 최대 커넥션 수용 갯수
- */
 jnet::JNetServer::JNetServer(
 	const char* serverIP, uint16 serverPort, uint16 maximumOfConnections,
 	BYTE packetCode_LAN, BYTE packetCode, BYTE packetSymmetricKey, 
@@ -62,9 +55,11 @@ bool jnet::JNetServer::Start()
 	cout << "JNetServer::Start(),  Listen Socket Ready To Accept.." << endl;
 
 	// 링거 옵션 추가 (강제 종료 유도)
+	// => 서버가 TCP 능동 폐쇄자가 될 시 TIME_WAIT 상태 패널티를 회피하기 위함
+	// onoff: ON / linger: 0, FIN 세그먼트가 아닌 RST 세그먼트를 보냄으로써 4-Way 세그먼트 교환과 TIME_WAIT 패널티 없이 클라이언트와의 연결을 강제 종료
 	struct linger linger_option;
-	linger_option.l_onoff = 1;  // SO_LINGER 사용
-	linger_option.l_linger = 0; // 소켓이 닫힐 때 최대 대기 시간 (초)
+	linger_option.l_onoff = 1;  
+	linger_option.l_linger = 0; 
 	setsockopt(m_ListenSock, SOL_SOCKET, SO_LINGER, (const char*)&linger_option, sizeof(linger_option));
 
 	// Accept 스레드 생성
@@ -257,7 +252,7 @@ UINT __stdcall JNetServer::AcceptThreadFunc(void* arg) {
 			if (server->m_CalcTpsFlag) server->IncrementAcceptTransactions();
 
 			if (!server->OnConnectionRequest(clientAddr)) {
-				shutdown(clientSock, SD_BOTH);
+				//shutdown(clientSock, SD_BOTH);	// TCP '절반 폐쇄' 관련
 				closesocket(clientSock);
 			}
 			else {

@@ -547,6 +547,15 @@ UINT __stdcall JNetCore::WorkerThreadFunc(void* arg)
 		DWORD transferred = 0;
 		ULONG_PTR completionKey;
 		WSAOVERLAPPED* overlappedPtr;
+
+		// I/O Completion Queue's record
+		//	- (1) 송수신된 바이트 수
+		//	- (2) 장치와 IOCP 연계 시 지정한 '컴플리션 큐' 
+		//		=> '세션' 식별
+		//	- (3) 비동기 I/O 작업 요청 시 사용한 OVERLAPPED 구조체 포인터
+		//		=> 세션's 수신 OVERELAPPED 구조체 포인터, "수신 완료"
+		//		=> 세션's 송신 OVERLAPPED 구조체 포인터, "송신 완료"
+		//		=> IOCP_COMPLTED_LPOVERLAPPED_DISCONNECT / IOCP_COMPLTED_LPOVERLAPPED_SENDPOST_REQ 상수, "Disconnect 요청" / "SendPost" 요청
 		GetQueuedCompletionStatus(jnetcore->m_IOCP, &transferred, (PULONG_PTR)&completionKey, &overlappedPtr, INFINITE);
 		if (overlappedPtr != NULL) {
 

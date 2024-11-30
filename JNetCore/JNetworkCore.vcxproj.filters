@@ -1,11 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="..\include\CommStructs.h" />
-    <ClInclude Include="..\include\CommTypes.h" />
     <ClInclude Include="..\include\JNetCore.h" />
-    <ClInclude Include="..\include\JNetDB.h" />
-    <ClInclude Include="..\include\WinSocketAPI.h" />
     <ClInclude Include="MACRO.h">
       <Filter>PreCompile</Filter>
     </ClInclude>
@@ -15,13 +11,23 @@
     <ClInclude Include="..\include\JobHandler.h">
       <Filter>Job</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\WinSocketAPI.h">
+      <Filter>WinSock</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\CommStructs.h">
+      <Filter>Comm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\CommTypes.h">
+      <Filter>Comm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\JNetDB.h">
+      <Filter>DB</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="JNetSession.cpp" />
-    <ClCompile Include="WinSocketAPI.cpp" />
     <ClCompile Include="JNetCore.cpp" />
     <ClCompile Include="JNetServer.cpp" />
-    <ClCompile Include="JNetDB.cpp" />
     <ClCompile Include="JNetEncryption.cpp" />
     <ClCompile Include="JNetGroup.cpp" />
     <ClCompile Include="JNetClient.cpp" />
@@ -32,19 +38,28 @@
     <ClCompile Include="JobHandler.cpp">
       <Filter>Job</Filter>
     </ClCompile>
+    <ClCompile Include="WinSocketAPI.cpp">
+      <Filter>WinSock</Filter>
+    </ClCompile>
+    <ClCompile Include="JNetDB.cpp">
+      <Filter>DB</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="PreCompile">
       <UniqueIdentifier>{120b9314-269f-4885-bd6f-3452c7dac5a5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Utils">
-      <UniqueIdentifier>{0ced0d88-9f5d-4867-a975-702b209e3bcb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Thread">
-      <UniqueIdentifier>{fa1229ed-4b78-4557-8249-e24c9584340e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Job">
       <UniqueIdentifier>{57537d6c-5333-4521-b0c4-6cebcf4b921c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="WinSock">
+      <UniqueIdentifier>{99b0a59f-171d-4708-a2fb-963763f17427}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Comm">
+      <UniqueIdentifier>{eafeb79e-a75d-4e48-8c76-8149f39d664b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DB">
+      <UniqueIdentifier>{1768fb77-e4f1-4ba9-a2c6-2d2837a366c6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

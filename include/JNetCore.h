@@ -49,9 +49,10 @@ namespace jnet {
 		std::vector<HANDLE>			m_IocpWorkerThrdHnds;		///< IOCP 작업자 스레드 핸들 벡터
 		std::vector<uint32>			m_IocpWorkerThrdIDs;		///< IOCP 작업자 스레드's ID 벡터
 
-		TlsMemPoolManager<JBuffer, true, false>	m_TlsMemPoolMgr;			///< Tls 메모리 풀 관리 (직렬화 패킷 버퍼 풀 할당 및 관리자)
+		TlsMemPoolManager<JBuffer, true, false>	m_TlsMemPoolMgr;	///< Tls 메모리 풀 관리 (직렬화 패킷 버퍼 풀 할당 및 관리자)
+
 		size_t						m_TlsMemPoolUnitCnt;
-		size_t						m_TlsMemPoolUnitCapacity;
+		size_t						m_TlsMemPoolUnitCapacity;	
 		uint32						m_MemPoolBuffAllocSize;
 
 	public:
@@ -94,32 +95,32 @@ namespace jnet {
 		/// @return 등록 성공 여부
 		bool RegistSessionToIOCP(JNetSession* session);
 
-		// @brief 세션 제거 요청 함수
-		// @param sessionID 제거하고자하는 세션 아이디
-		// @return true 반환 시 세션 제거, false 반환 시 이미 제거되었거나 제거 로직이 다른 스레드를 통해 수행중인 상황을 암시
+		/// @brief 세션 제거 요청 함수
+		/// @param sessionID 제거하고자하는 세션 아이디
+		/// @return true 반환 시 세션 제거, false 반환 시 이미 제거되었거나 제거 로직이 다른 스레드를 통해 수행중인 상황을 암시
 		bool DeleteSession(SessionID64 sessionID);
 
 		void Disconnect(SessionID64 sessionID);
 		
-		// @brief 패킷 송신 요청 함수
-		// @param sessionID 송신 대상 세션 아이디
-		// @param 송신 직렬화 패킷 버퍼
-		// @postToWorker IOCP 작업자 스레드에 실질적 송신 작업(SendPost) 책임 전가
+		/// @brief 패킷 송신 요청 함수
+		/// @param sessionID 송신 대상 세션 아이디
+		/// @param 송신 직렬화 패킷 버퍼
+		/// @postToWorker IOCP 작업자 스레드에 실질적 송신 작업(SendPost) 책임 전가(WSASend 호출 및 커널 모드 전환 처리 전가)
 		bool SendPacket(SessionID64 sessionID, JBuffer* sendPktPtr, bool postToWorker = false);
 
-		// @brief 동기식 송신 요청 함수
-		// @param sessionID 송신 대상 세션 아이디
-		// @param 송신 직렬화 패킷 버퍼
+		/// @brief 동기식 송신 요청 함수
+		/// @param sessionID 송신 대상 세션 아이디
+		/// @param 송신 직렬화 패킷 버퍼
 		bool SendPacketBlocking(SessionID64 sessionID, JBuffer* sendPktPtr);
 
-		// @brief 세션 송신 버퍼 큐에 버퍼링(삽입만 진행)
-		// @param sessionID 송신 대상 세션 아이디
-		// @param 송신 직렬화 패킷 버퍼
+		/// @brief 세션 송신 버퍼 큐에 버퍼링(삽입만 진행)
+		/// @param sessionID 송신 대상 세션 아이디
+		/// @param 송신 직렬화 패킷 버퍼
 		bool BufferSendPacket(SessionID64 sessionID, JBuffer* sendPktPtr);
 
-		// @brief 세션 송신 버퍼 큐 내 송신 패킷 직렬화 버퍼에 대한 일괄 송신 작업 수행
-		// @param sessionID 송신 대상 세션 아이디
-		// @postToWorker IOCP 작업자 스레드에 실질적 송신 작업(SendPost) 책임 전가
+		/// @brief 세션 송신 버퍼 큐 내 송신 패킷 직렬화 버퍼에 대한 일괄 송신 작업 수행
+		/// @param sessionID 송신 대상 세션 아이디
+		/// @postToWorker IOCP 작업자 스레드에 실질적 송신 작업(SendPost) 책임 전가
 		bool SendBufferedPacket(SessionID64 sessionID, bool postToWorker = false);
 
 		/// @brief 직렬화 패킷 버퍼 Tls 풀 할당 함수
@@ -186,9 +187,9 @@ namespace jnet {
 
 
 	private:
-		// @brief Multi IOCP 작업자 스레드 간 thread-safe 하지 않은 세션에 대해 세션 접근 전 호출하는 함수
-		// @param 접근 대상 세션 아이디
-		// @return 해당 세션 객체 포인터
+		/// @brief Multi IOCP 작업자 스레드 간 thread-safe 하지 않은 세션에 대해 세션 접근 전 호출하는 함수
+		/// @param 접근 대상 세션 아이디
+		/// @return 해당 세션 객체 포인터
 		JNetSession* AcquireSession(SessionID64 sessionID);				// called by SendPacket, BufferedSendPacket, SendBufferedPacket
 
 		/// @brief AcquireSession을 통해 획득한 세션 객체 소유권 반납
@@ -360,11 +361,26 @@ private:
 		bool						m_RecvBufferingMode;		///< 수신 버퍼링 모드 플래그
 
 	protected:
-		BYTE						m_PacketCode_LAN;			///< LAN 내 통신 패킷 코드
+		BYTE						m_PacketCode_LAN;			///< LAN 구간 패킷 코드
 		BYTE						m_PacketCode;				///< LAN 외부 통신 패킷 코드
-		BYTE						m_PacketSymmetricKey;		///< 대칭 키
+		BYTE						m_PacketSymmetricKey;		///< 대칭-키
 
 	public:
+		/// @param serverIP 서버 IP 주소
+		/// @param serverPort 서버 포트
+		/// @param maximumOfConnections 최대 커넥션 수용 갯수
+		/// @param packetCode_LAN LAN 구간 내 송수신 패킷 코드(JNetLibrary system's common packet code)
+		/// @param packetCode 클라이언트와의 송수신 패킷 코드
+		/// @param packetSymmetricKey 대칭키(고정)
+		/// @param recvBufferingMode 단일 세션에 대한 수신 완료 통지 시 수신 가능한 모든 패킷을 한 번에 읽은 후 'JSerialBuffer'에 담고 이를 인수로 수신 이벤트 함수 호출
+		/// @param maximumOfSessions 최대 세션 수용 개수
+		/// @param numOfIocpConcurrentThrd IOCP 'Number of Concurrent Threads' 설정 값
+		/// @param numOfIocpWorkerThrd IOCP 객체를 통해 관리될 작업자 스레드 갯수 설정 값
+		/// @param tlsMemPoolUnitCnt TLS 메모리 풀의 할당 단위 기준 초기 설정 값
+		/// @param tlsMemPoolUnitCapacity TLS 메모리 풀 할당 단위 기준 최대 개수
+		/// @param memPoolBuffAllocSize TLS 메모리 풀 할당 단위 크기
+		/// @param sessionRecvBuffSize 세션 수신 버퍼 크기(링-버퍼)
+		/// @param calcTpsThread 서버 TPS(Transaction per seconds) 측정 플래그, 플래그 ON 시 'CalcTpsThreadFunc' 작업 함수 수행 스레드 생성
 		JNetServer(
 			const char* serverIP, uint16 serverPort, uint16 maximumOfConnections,
 			PACKET_CODE packetCode_LAN, PACKET_CODE packetCode, PACKET_SYMM_KEY packetSymmetricKey,
@@ -398,10 +414,17 @@ private:
 		void PrintLibraryInfoOnConsole();
 
 	protected:
+		/// @brief JNetCore 요청 함수 + 송신 패킷 인코딩 기능
+		/// @param encoded encoded: false의 경우 함수 내 인코딩 수행
 		bool SendPacket(SessionID64 sessionID, JBuffer* sendPktPtr, bool postToWorker = false, bool encoded = false);
+		/// @param encoded encoded: false의 경우 함수 내 인코딩 수행
 		bool SendPacketBlocking(SessionID64 sessionID, JBuffer* sendPktPtr, bool encoded = false);
+		/// @param encoded encoded: false의 경우 함수 내 인코딩 수행
 		bool BufferSendPacket(SessionID64 sessionID, JBuffer* sendPktPtr, bool encoded = false);
 
+		/// @brief 직렬화 패킷 버퍼 할당 + 헤더 초기화
+		/// @param len 페이로드(데이터) 길이
+		/// @param LAN LAN: true, LAN 구간 패킷 코드 설정 / LAN: false, LAN 외 구간(클라이언트) 패킷 코드 설정
 		inline JBuffer* AllocSerialSendBuff(uint16 len, bool LAN = false) {
 			JBuffer* msg = AllocSerialBuff();
 			stMSG_HDR* hdr = msg->DirectReserve<stMSG_HDR>();
@@ -419,8 +442,9 @@ private:
 	protected:
 		/// @brief Accept 반환 시 호출되는 이벤트 함수, 클라이언트 수용  여부를 반환을 통해 결정
 		/// @param clientSockAddr 연결 요청 클라이언트의 주소 정보
-		/// @return true: 클라이언트 연결 수용, false: 클라이언트 연결 종료
-		virtual bool OnConnectionRequest(const SOCKADDR_IN& clientSockAddr) {
+		/// @return false 리턴: '설정된 커넥션 한계 값 도달' 의미
+		virtual bool OnConnectionRequest(const SOCKADDR_IN& clientSockAddr) 
+		{
 			if (m_NumOfConnections > m_MaximumOfConnections) {
 				return false;
 			}
@@ -444,7 +468,7 @@ private:
 		virtual void OnRecv(SessionID64 sessionID, JBuffer& recvBuff) {}
 
 		/// @brief 패킷 수신 시 호출되는 이벤트 함수, 수신 버퍼링 모드의 서버 전용
-		/// @param recvSerialBuff 복수의 수신 직렬화 버퍼를 추상화한 JSerialBuffer
+		/// @param recvSerialBuff 복수의 수신 직렬화 버퍼를 추상화한 'JSerialBuffer'
 		virtual void OnRecv(SessionID64 sessionID, JSerialBuffer& recvSerialBuff) {}
 
 	private:
@@ -462,12 +486,13 @@ private:
 	/********************************************************************
 	* JNetOdbcServer
 	********************************************************************/
+	/// @class JNetOdbcServer
 	class JNetOdbcServer : public JNetServer
 	{
 	private:
-		int32				m_DBConnCnt;
-		const WCHAR*		m_OdbcConnStr;
-		JNetDBConnPool*		m_DBConnPool;
+		int32				m_DBConnCnt;						///< DB Connection Count
+		const WCHAR*		m_OdbcConnStr;						///< ODBC Connection String
+		JNetDBConnPool*		m_DBConnPool;						///< DB Connection Pool
 		bool				m_DBConnFlag;
 
 	public:
@@ -538,15 +563,16 @@ private:
 	/********************************************************************
 	* JNetClient
 	********************************************************************/
+	/// @class JNetClient
 	class JNetClient : public JNetCore {
 	private:
-		SOCKET			m_ConnectSock;
-		SessionID64		m_ServerSessionID64;
+		SOCKET			m_ConnectSock;							///< 클라이언트 연결 소켓
+		SessionID64		m_ServerSessionID64;					///< 연결 서버 세션 ID
 
-		const char* m_ServerIP;
-		uint16 m_ServerPort;
+		const char*		m_ServerIP;								///< 서버 IP
+		uint16			m_ServerPort;							///< 서버 Port
 
-		PACKET_CODE						m_PacketCode_LAN;
+		PACKET_CODE		m_PacketCode_LAN;						///< LAN 구간 패킷 코드
 
 	public:
 		JNetClient(
