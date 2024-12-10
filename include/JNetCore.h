@@ -270,14 +270,10 @@ private:
 	inline UINT64 GetTotalTransactions(BYTE type) {return m_TotalTransaction[type];}
 	};
 
-
-	/********************************************************************
-	* JNetCore::JNetSession
-	********************************************************************/
 	/**
-	* @class JNetCore에서 관리되는 세션 구조체
 	* @brief 
-	* 세션의 연결 소켓 및 수신 링-버퍼와 송신 락-프리 큐 버퍼를 멤버로 갖으며, 세션 ID와 참조 카운트 필드를 바탕으로 thread-safe한 세션 초기화 및 해제 기능을 제공 
+	* JNetCore에서 관리되는 세션 구조체 <br>
+	* 세션의 연결 소켓 및 수신 링-버퍼와 송신 락-프리 큐 버퍼를 멤버로 갖으며, 세션 ID와 참조 카운트 필드를 바탕으로 thread-safe한 세션 초기화 및 해제 기능을 제공 <br>
 	*/
 	struct JNetCore::JNetSession {
 		///@brief 세션 ID 비트 필드
@@ -750,6 +746,7 @@ private:
 			HANDLE							m_GroupThreadHnd;		///< 그룹 스레드 핸들
 			bool							m_GroupThreadStop;		///< 그룹 스레드 중지 플래그
 
+			///@brief 그룹 스레드에 전달되는 메시지 구조체
 			struct GroupTheradMessage {
 				UINT64	msgSenderID;
 				BYTE		msgType;

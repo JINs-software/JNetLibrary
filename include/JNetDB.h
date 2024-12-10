@@ -12,6 +12,7 @@ namespace jnet {
 		BINARY_MAX = 8000
 	};
 
+	///@brief DB Connection 추상화
 	class JNetDBConn
 	{
 	private:
@@ -101,8 +102,9 @@ namespace jnet {
 	};
 
 
+	///@brief DB 커넥션 인스턴스 Pool
 	// 연결을 미리 여러 개 맺고, DB 요청이 필요할 때마다 Pool에서 재사용한다.
-// DB 커넥션 풀은 전역에 하나만 존재(like 싱글톤)
+	// DB 커넥션 풀은 전역에 하나만 존재(like 싱글톤)
 	class JNetDBConnPool
 	{
 	private:
