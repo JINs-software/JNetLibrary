@@ -10,7 +10,7 @@
 
 /**
 * @namespace jnet
-* @brief JNetLibrary's namespace
+* @brief JNetLibrary's namespace, JNetCore/JNetServer/JNetOdbcServer/JNetClient class
 */
 namespace jnet {
 
@@ -27,11 +27,16 @@ namespace jnet {
 	using namespace std;
 	using SessionID64 = uint64;
 	
-
 	/********************************************************************
 	* JNetCore
 	********************************************************************/
-	/// @class JNetCore
+	/**
+	* @class JNetCore
+	* @brief
+	* 클라이언트 TCP 세션의 생명 주기를 'JNetSession'을 통해 관리하며, 하위 클래스 객체의 세션 접근(송신, 수신 처리 및 연결 종료)에 대한 thread-safe 성을 보장함
+	* 등록된 세션의 소켓 장치를 IOCP 객체에 등록되면, 비동기 I/O 완료 처리를 IOCP 작업자 스레드를 통해 수행
+	* 클라이언트로부터의 패킷 수신 완료 및 연결 종료를 이벤트 함수(OnRecvCompletion, OnSessionLeave)를 통해 콜백하며, 패킷 송신 및 연결 종료 기능 함수(SendPacket, Disconnect)를 제공함
+	*/
 	class JNetCore
 	{	
 	protected:
@@ -269,7 +274,11 @@ private:
 	/********************************************************************
 	* JNetCore::JNetSession
 	********************************************************************/
-	/// @class JNetCore에서 관리되는 세션 구조체
+	/**
+	* @struct JNetCore에서 관리되는 세션 구조체
+	* @brief 
+	* 세션의 연결 소켓 및 수신 링-버퍼와 송신 락-프리 큐 버퍼를 멤버로 갖으며, 세션 ID와 참조 카운트 필드를 바탕으로 thread-safe한 세션 초기화 및 해제 기능을 제공 
+	*/
 	struct JNetCore::JNetSession {
 		struct SessionID {
 			uint64	idx : 16;
@@ -347,7 +356,12 @@ private:
 	/********************************************************************
 	* JNetServer
 	********************************************************************/
-	/// @class JNetServer
+	/**
+	* @class JNetServer
+	* @brief 
+	* 서버 기능이 구체화된 'JNetCore' 하위 클래스, 클라이언트와의 연결 완료 시 '세션 객체 생성' 및 'IOCP 객체에 소켓 장치 등록' 수행
+	* 패킷 수신 완료 시의 이벤트 함수에 디코딩 작업(OnRecv)과 패킷 송신 기능 함수에 인코딩 작업 추가
+	*/
 	class JNetServer : public JNetCore{
 	private:
 		SOCKADDR_IN					m_ListenSockAddr;			///< 서버 바인딩 주소
@@ -486,7 +500,11 @@ private:
 	/********************************************************************
 	* JNetOdbcServer
 	********************************************************************/
-	/// @class JNetOdbcServer
+	/**
+	* @class JNetOdbcServer
+	* @brief
+	* DB 커넥션 기능을 수행하는 DB 커넥션 객체 풀을 관리하여 커넥션(HoldConnection)과 SQL 쿼리 및 응답 처리(ExecQuery, FetchQuery) 추상화 제공
+	*/
 	class JNetOdbcServer : public JNetServer
 	{
 	private:
@@ -563,7 +581,11 @@ private:
 	/********************************************************************
 	* JNetClient
 	********************************************************************/
-	/// @class JNetClient
+	/**
+	* @class JNetClient
+	* @brief
+	* 클라이언트 기능이 구체화된 'JNetCore' 하위 클래스, 동일 LAN 구간 서버로의 연결 요청과 패킷 송수신(ConnectToServer, OnRecv, SendPacket) 추상화
+	*/
 	class JNetClient : public JNetCore {
 	private:
 		SOCKET			m_ConnectSock;							///< 클라이언트 연결 소켓
@@ -629,7 +651,10 @@ private:
 		}
 	};
 
-
+	/**
+	* @namespace jgroup
+	* @brief JNetLibrary's namespace(in 'jnet'), JNetGroupServer/JNetGroupThread class
+	*/
 	namespace jgroup {
 		using GroupID = uint16;
 
@@ -638,17 +663,21 @@ private:
 		/********************************************************************
 		* JNetGroupServer
 		********************************************************************/
+		/**
+		* @class JNetGroupServer
+		* @brief
+		* 클라이언트 세션을 그룹 단위로 묶고, 'JNetGroupThread' 인스턴스의 메시지 큐(그룹 메시지 큐)에 전달
+		* '그룹 생성', '세션의 그룹 이동', '그룹 간 메시지 송신 및 포워딩' 기능(CreateGroup, Enter/ForwardSessionGroup, SendGroupMessage) 제공
+		*/
 		class JNetGroupServer : public JNetServer
 		{
 			friend class JNetGroupThread;
 
 		private:
-			// Session <-> Group mapping
-			std::unordered_map<SessionID64, GroupID>	m_SessionGroupMap;	
+			std::unordered_map<SessionID64, GroupID>	m_SessionGroupMap;			///< 세션-그룹 맵핑
 			SRWLOCK										m_SessionGroupMapSrwLock;
 
-			// GroupID <-> GroupThread mapping
-			std::map<GroupID, JNetGroupThread*>			m_GroupThreads;
+			std::map<GroupID, JNetGroupThread*>			m_GroupThreads;				///< 그룹-그룹 스레드 맵핑
 
 
 		public:
@@ -678,16 +707,19 @@ private:
 				cout << "JNetGroupServer::JNetGroupServer(..) Init JNetGroupServer.." << endl;
 			}
 
-			// 그룹 생성 (그룹 식별자 반환, 라이브러리와 컨텐츠는 그룹 식별자를 통해 식별)
+			///@brief 그룹 생성 (그룹 식별자 반환, 라이브러리와 컨텐츠는 그룹 식별자를 통해 식별)
 			void CreateGroup(GroupID newGroupID, JNetGroupThread* groupThread, bool threadPriorBoost = false);
 			void DeleteGroup(GroupID delGroupID);
 
-			// 그룹 이동
+			///@brief 세션의 특정 그룹 입장
 			void EnterSessionGroup(SessionID64 sessionID, GroupID enterGroup);
 			void LeaveSessionGroup(SessionID64 sessionID);
+			///@brief 세션의 그룹 이동
 			void ForwardSessionGroup(SessionID64 sessionID, GroupID from, GroupID to);
-			//void SendMessageGroupToGroup(SessionID64 sessionID, JBuffer* groupMsg);
+
+			///@brief 세션 수신 메시지 포워딩
 			void ForwardMessage(SessionID64 sessionID, JBuffer* msg);
+			///@brief 그룹 간 메시지 송신
 			void SendGroupMessage(GroupID from, GroupID to, JBuffer* groupMsg);
 
 		private:
@@ -698,17 +730,23 @@ private:
 		/********************************************************************
 		* JNetGroupThread
 		********************************************************************/
+		/**
+		* @class JNetGroupThread
+		* @brief
+		* 'JNetGroupServer' 인스턴스로부터 그룹 메시지 큐에 전달된 메시지를 싱글 스레드가 수신하여 메시지 처리 콜백을 호출
+		* 단일 세션에 대한 수신 직렬 처리를 보장하며, 세션 참조에 대한 유일성이 보장됨으로 수신 이벤트 처리 시 락 없는 로직 구현 가능
+		*/
 		class JNetGroupThread 
 		{
 		protected:
 			JNetGroupServer* m_Server;
 		private:
-			GroupID							m_GroupID;
-			bool							m_PriorBoost;
-			bool							m_CalcFps;
+			GroupID							m_GroupID;				///< 그룹 스레드 인스턴스의 관리 대상인 그룹 ID
+			bool							m_PriorBoost;			///< 그룹 스레드의 우선순위 부스팅 여부 플래그
+			bool							m_CalcFps;				///< 그룹 스레드의 FPS(Framge per second) 측정 여부 플래그
 
-			HANDLE							m_GroupThreadHnd;
-			bool							m_GroupThreadStop;
+			HANDLE							m_GroupThreadHnd;		///< 그룹 스레드 핸들
+			bool							m_GroupThreadStop;		///< 그룹 스레드 중지 플래그
 
 			struct GroupTheradMessage {
 				UINT64	msgSenderID;
