@@ -10,7 +10,7 @@
 
 /**
 * @namespace jnet
-* @brief JNetLibrary's namespace, JNetCore/JNetServer/JNetOdbcServer/JNetClient class
+* @brief JNetCore/JNetServer/JNetOdbcServer/JNetClient class
 */
 namespace jnet {
 
@@ -33,9 +33,9 @@ namespace jnet {
 	/**
 	* @class JNetCore
 	* @brief
-	* 클라이언트 TCP 세션의 생명 주기를 'JNetSession'을 통해 관리하며, 하위 클래스 객체의 세션 접근(송신, 수신 처리 및 연결 종료)에 대한 thread-safe 성을 보장함
-	* 등록된 세션의 소켓 장치를 IOCP 객체에 등록되면, 비동기 I/O 완료 처리를 IOCP 작업자 스레드를 통해 수행
-	* 클라이언트로부터의 패킷 수신 완료 및 연결 종료를 이벤트 함수(OnRecvCompletion, OnSessionLeave)를 통해 콜백하며, 패킷 송신 및 연결 종료 기능 함수(SendPacket, Disconnect)를 제공함
+	* 클라이언트 TCP 세션의 생명 주기를 'JNetSession'을 통해 관리하며, 하위 클래스 객체의 세션 접근(송신, 수신 처리 및 연결 종료)에 대한 thread-safe 성을 보장함 <br>
+	* 등록된 세션의 소켓 장치를 IOCP 객체에 등록되면, 비동기 I/O 완료 처리를 IOCP 작업자 스레드를 통해 수행  <br>
+	* 클라이언트로부터의 패킷 수신 완료 및 연결 종료를 이벤트 함수(OnRecvCompletion, OnSessionLeave)를 통해 콜백하며, 패킷 송신 및 연결 종료 기능 함수(SendPacket, Disconnect)를 제공함  <br>
 	*/
 	class JNetCore
 	{	
@@ -275,11 +275,12 @@ private:
 	* JNetCore::JNetSession
 	********************************************************************/
 	/**
-	* @struct JNetCore에서 관리되는 세션 구조체
+	* @class JNetCore에서 관리되는 세션 구조체
 	* @brief 
 	* 세션의 연결 소켓 및 수신 링-버퍼와 송신 락-프리 큐 버퍼를 멤버로 갖으며, 세션 ID와 참조 카운트 필드를 바탕으로 thread-safe한 세션 초기화 및 해제 기능을 제공 
 	*/
 	struct JNetCore::JNetSession {
+		///@brief 세션 ID 비트 필드
 		struct SessionID {
 			uint64	idx : 16;
 			uint64	increment : 48;
@@ -298,6 +299,7 @@ private:
 				return *reinterpret_cast<uint64*>(this);
 			}
 		};
+		///@brief 세션 참조 제어용 비트 필드
 		struct SessionRef {
 			int32	refCnt : 24;
 			int32	releaseFlag : 8;
@@ -359,8 +361,8 @@ private:
 	/**
 	* @class JNetServer
 	* @brief 
-	* 서버 기능이 구체화된 'JNetCore' 하위 클래스, 클라이언트와의 연결 완료 시 '세션 객체 생성' 및 'IOCP 객체에 소켓 장치 등록' 수행
-	* 패킷 수신 완료 시의 이벤트 함수에 디코딩 작업(OnRecv)과 패킷 송신 기능 함수에 인코딩 작업 추가
+	* 서버 기능이 구체화된 'JNetCore' 하위 클래스, 클라이언트와의 연결 완료 시 '세션 객체 생성' 및 'IOCP 객체에 소켓 장치 등록' 수행  <br>
+	* 패킷 수신 완료 시의 이벤트 함수에 디코딩 작업(OnRecv)과 패킷 송신 기능 함수에 인코딩 작업 추가  <br>
 	*/
 	class JNetServer : public JNetCore{
 	private:
@@ -653,7 +655,7 @@ private:
 
 	/**
 	* @namespace jgroup
-	* @brief JNetLibrary's namespace(in 'jnet'), JNetGroupServer/JNetGroupThread class
+	* @brief JNetGroupServer/JNetGroupThread class
 	*/
 	namespace jgroup {
 		using GroupID = uint16;
@@ -666,8 +668,8 @@ private:
 		/**
 		* @class JNetGroupServer
 		* @brief
-		* 클라이언트 세션을 그룹 단위로 묶고, 'JNetGroupThread' 인스턴스의 메시지 큐(그룹 메시지 큐)에 전달
-		* '그룹 생성', '세션의 그룹 이동', '그룹 간 메시지 송신 및 포워딩' 기능(CreateGroup, Enter/ForwardSessionGroup, SendGroupMessage) 제공
+		* 클라이언트 세션을 그룹 단위로 묶고, 'JNetGroupThread' 인스턴스의 메시지 큐(그룹 메시지 큐)에 전달 <br>
+		* '그룹 생성', '세션의 그룹 이동', '그룹 간 메시지 송신 및 포워딩' 기능(CreateGroup, Enter/ForwardSessionGroup, SendGroupMessage) 제공 <br>
 		*/
 		class JNetGroupServer : public JNetServer
 		{
@@ -733,8 +735,8 @@ private:
 		/**
 		* @class JNetGroupThread
 		* @brief
-		* 'JNetGroupServer' 인스턴스로부터 그룹 메시지 큐에 전달된 메시지를 싱글 스레드가 수신하여 메시지 처리 콜백을 호출
-		* 단일 세션에 대한 수신 직렬 처리를 보장하며, 세션 참조에 대한 유일성이 보장됨으로 수신 이벤트 처리 시 락 없는 로직 구현 가능
+		* 'JNetGroupServer' 인스턴스로부터 그룹 메시지 큐에 전달된 메시지를 싱글 스레드가 수신하여 메시지 처리 콜백을 호출 <br>
+		* 단일 세션에 대한 수신 직렬 처리를 보장하며, 세션 참조에 대한 유일성이 보장됨으로 수신 이벤트 처리 시 락 없는 로직 구현 가능 <br>
 		*/
 		class JNetGroupThread 
 		{
